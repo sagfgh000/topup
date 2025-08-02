@@ -177,84 +177,96 @@ export default function HomePage() {
         </section>
 
         <section className="container mx-auto px-4 py-8 md:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                  <Gem className="text-primary" />
-                  1. Select Your Package
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {productsLoading ? (
-                    Array.from({ length: 6 }).map((_, index) => (
-                        <Skeleton key={index} className="h-24 w-full" />
-                    ))
-                ) : (
-                    products
-                    .filter((p) => p.game === 'Free Fire')
-                    .map((pkg) => (
-                        <button
-                        key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={cn(
-                            'p-4 rounded-lg border-2 text-center transition-all duration-200',
-                            selectedPackage?.id === pkg.id
-                            ? 'border-primary bg-primary/10 ring-2 ring-primary'
-                            : 'border-border hover:border-primary/50 hover:bg-muted'
-                        )}
-                        >
-                        <div className="font-bold text-lg">{pkg.name}</div>
-                        <div className="text-primary font-semibold">{pkg.price} Taka</div>
-                        </button>
-                    ))
-                )}
-              </CardContent>
-            </Card>
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            <div className="space-y-8">
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                    <Gem className="text-primary" />
+                    1. Select Your Package
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {productsLoading ? (
+                      Array.from({ length: 6 }).map((_, index) => (
+                          <Skeleton key={index} className="h-24 w-full" />
+                      ))
+                  ) : (
+                      products
+                      .filter((p) => p.game === 'Free Fire')
+                      .map((pkg) => (
+                          <button
+                          key={pkg.id}
+                          onClick={() => setSelectedPackage(pkg)}
+                          className={cn(
+                              'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                              selectedPackage?.id === pkg.id
+                              ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                              : 'border-border hover:border-primary/50 hover:bg-muted'
+                          )}
+                          >
+                          <div className="font-bold text-lg">{pkg.name}</div>
+                          <div className="text-primary font-semibold">{pkg.price} Taka</div>
+                          </button>
+                      ))
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                  <CreditCard className="text-primary" />
-                  2. Complete Your Order
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="playerId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Free Fire Player ID / UID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your Player ID" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg border">
-                      The cost for <strong>{selectedPackage?.name || '...'}</strong> ({selectedPackage ? `${selectedPackage.price} Taka` : '...'}) will be deducted from your wallet balance.
-                    </div>
-                    <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage || isSubmitting || productsLoading}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="mr-2 h-5 w-5" />
-                          Submit Order
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                    <CreditCard className="text-primary" />
+                    2. Complete Your Order
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="playerId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Free Fire Player ID / UID</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your Player ID" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg border">
+                        The cost for <strong>{selectedPackage?.name || '...'}</strong> ({selectedPackage ? `${selectedPackage.price} Taka` : '...'}) will be deducted from your wallet balance.
+                      </div>
+                      <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage || isSubmitting || productsLoading}>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="mr-2 h-5 w-5" />
+                            Submit Order
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
+             <div className="hidden lg:block">
+                <Image
+                    src="/free-fire-diamonds.jpg"
+                    alt="Free Fire diamonds in a chest"
+                    width={500}
+                    height={500}
+                    className="rounded-lg shadow-2xl object-cover"
+                    data-ai-hint="diamond chest"
+                />
+            </div>
           </div>
         </section>
       </main>
