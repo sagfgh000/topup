@@ -74,14 +74,20 @@ export default function TransactionHistoryClient() {
     
     let orders: Order[] = [];
     let topUps: TopUpRequest[] = [];
+    let combinedLoaded = { orders: false, topups: false };
+
 
     const combineAndSetTransactions = () => {
-      const combined = [
-        ...topUps.map(t => ({ ...t, type: 'TopUp' as const, date: t.createdAt })),
-        ...orders.map(o => ({ ...o, type: 'Order' as const, date: o.createdAt }))
-      ];
-      combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-      setTransactions(combined);
+        // Only combine and set state if both listeners have returned data
+        if (!combinedLoaded.orders || !combinedLoaded.topups) return;
+
+        const combined = [
+            ...topUps.map(t => ({ ...t, type: 'TopUp' as const, date: t.createdAt })),
+            ...orders.map(o => ({ ...o, type: 'Order' as const, date: o.createdAt }))
+        ];
+        combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+        setTransactions(combined);
+        setLoading(false);
     };
 
     const unsubscribeTopUps = onSnapshot(topUpQuery, (snapshot) => {
@@ -90,11 +96,12 @@ export default function TransactionHistoryClient() {
             const createdAtDate = (data.createdAt as Timestamp)?.toDate() || new Date();
             return { ...data, id: doc.id, createdAt: createdAtDate } as TopUpRequest;
         });
+        combinedLoaded.topups = true;
         combineAndSetTransactions();
-        setLoading(false); // Assume loading is false after first fetch
     }, (error) => {
         console.error('Error fetching topups:', error);
-        setLoading(false);
+        combinedLoaded.topups = true;
+        combineAndSetTransactions();
     });
 
     const unsubscribeOrders = onSnapshot(orderQuery, (snapshot) => {
@@ -103,11 +110,12 @@ export default function TransactionHistoryClient() {
             const createdAtDate = (data.createdAt as Timestamp)?.toDate() || new Date();
             return { ...data, id: doc.id, createdAt: createdAtDate } as Order;
         });
+        combinedLoaded.orders = true;
         combineAndSetTransactions();
-        setLoading(false); // Assume loading is false after first fetch
     }, (error) => {
         console.error('Error fetching orders:', error);
-        setLoading(false);
+        combinedLoaded.orders = true;
+        combineAndSetTransactions();
     });
 
     return () => {
@@ -164,6 +172,7 @@ export default function TransactionHistoryClient() {
               </TableCell>
               <TableCell className="font-medium">
                 {tx.type === 'TopUp' ? `Wallet top-up via ${tx.paymentMethod}` : `Order for ${tx.productName}`}
+                {tx.type === 'Order' && tx.status === 'Failed' && <span className="text-xs text-muted-foreground ml-2">(Refunded)</span>}
               </TableCell>
               <TableCell>{tx.date.toLocaleString()}</TableCell>
                <TableCell>

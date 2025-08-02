@@ -116,13 +116,16 @@ export default function AdminTopUpsTable() {
             const walletRef = doc(db, 'wallets', request.userId);
             const walletDoc = await transaction.get(walletRef);
             
-            if (!walletDoc.exists()) {
-                // If wallet doesn't exist, create it with the top-up amount
-                transaction.set(walletRef, { balance: request.amount });
-            } else {
-                const currentBalance = walletDoc.data().balance;
-                const newBalance = currentBalance + request.amount;
-                transaction.update(walletRef, { balance: newBalance });
+            // Only add funds if the request has not been approved before.
+            if (request.status !== 'Approved') {
+                if (!walletDoc.exists()) {
+                    // If wallet doesn't exist, create it with the top-up amount
+                    transaction.set(walletRef, { balance: request.amount });
+                } else {
+                    const currentBalance = walletDoc.data().balance;
+                    const newBalance = currentBalance + request.amount;
+                    transaction.update(walletRef, { balance: newBalance });
+                }
             }
             
             // Finally, update the request status
@@ -130,6 +133,7 @@ export default function AdminTopUpsTable() {
         });
       } else {
         // If rejecting, just update the status
+        // No need to touch the wallet if request is rejected
         await updateDoc(requestRef, { status: newStatus });
       }
         

@@ -8,9 +8,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, Timestamp, runTransaction } from 'firebase/firestore';
 
-import type { Order } from '@/lib/types';
+import type { Order, Wallet } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -71,14 +71,35 @@ export default function AdminOrdersTable() {
   }, [toast]);
 
 
-  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
-    const orderRef = doc(db, 'orders', orderId);
+  const handleStatusChange = async (order: Order, newStatus: Order['status']) => {
+    const orderRef = doc(db, 'orders', order.id);
     try {
-        await updateDoc(orderRef, { status: newStatus });
-        toast({
-            title: "Order Updated",
-            description: `Order has been marked as ${newStatus}.`
-        });
+        if (newStatus === 'Failed' && order.status !== 'Failed') {
+            // Refund the user if the order is marked as failed
+            await runTransaction(db, async (transaction) => {
+                const walletRef = doc(db, 'wallets', order.userId);
+                const walletDoc = await transaction.get(walletRef);
+
+                if (walletDoc.exists()) {
+                    const currentBalance = walletDoc.data().balance;
+                    const newBalance = currentBalance + order.productPrice;
+                    transaction.update(walletRef, { balance: newBalance });
+                }
+                // If wallet doesn't exist, we can't refund, but we still mark as failed.
+                
+                transaction.update(orderRef, { status: newStatus });
+            });
+             toast({
+                title: "Order Updated & Refunded",
+                description: `Order marked as Failed. ৳${order.productPrice.toFixed(2)} refunded to ${order.userEmail}.`
+            });
+        } else {
+             await updateDoc(orderRef, { status: newStatus });
+             toast({
+                title: "Order Updated",
+                description: `Order has been marked as ${newStatus}.`
+            });
+        }
     } catch (error) {
         console.error("Error updating order status: ", error);
         toast({
@@ -143,13 +164,13 @@ export default function AdminOrdersTable() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Completed')}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Completed')}>
                                 Mark as Completed
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Pending')}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Pending')}>
                                 Mark as Pending
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Failed')}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Failed')}>
                                 Mark as Failed
                             </DropdownMenuItem>
                             </DropdownMenuContent>

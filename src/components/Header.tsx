@@ -34,11 +34,6 @@ export default function Header() {
           </Link>
           <nav>
             <ul className="flex items-center gap-4">
-              <li>
-                <Button variant="ghost" asChild>
-                  <Link href="/orders">Track Order</Link>
-                </Button>
-              </li>
               {loading ? (
                 <Skeleton className="h-10 w-20" />
               ) : user ? (
