@@ -2,22 +2,19 @@
 
 import * as React from 'react';
 import {
-  ChevronDown,
   MoreHorizontal,
   File,
   ListFilter,
+  Loader2,
 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, Timestamp } from 'firebase/firestore';
 
-import { orders as mockOrders } from '@/lib/data';
 import type { Order } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -38,16 +35,58 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderStatusBadge from './OrderStatusBadge';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 export default function AdminOrdersTable() {
-  const [orders, setOrders] = React.useState<Order[]>(mockOrders);
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const { toast } = useToast();
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
+  React.useEffect(() => {
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const ordersData: Order[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            ordersData.push({ 
+                id: doc.id,
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate(),
+            } as Order);
+        });
+        setOrders(ordersData);
+        setLoading(false);
+    }, (error) => {
+        console.error("Error fetching orders: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not fetch orders.",
+        });
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
+
+  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+    const orderRef = doc(db, 'orders', orderId);
+    try {
+        await updateDoc(orderRef, { status: newStatus });
+        toast({
+            title: "Order Updated",
+            description: `Order has been marked as ${newStatus}.`
+        });
+    } catch (error) {
+        console.error("Error updating order status: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to update order status.",
+        });
+    }
   };
 
   const allCount = orders.length;
@@ -57,59 +96,69 @@ export default function AdminOrdersTable() {
 
   const renderTable = (filteredOrders: Order[]) => (
     <Card>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Player ID</TableHead>
-              <TableHead>Package</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Transaction ID</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.playerId}</TableCell>
-                <TableCell>{order.product.name}</TableCell>
-                <TableCell>{order.paymentMethod}</TableCell>
-                <TableCell>{order.transactionId}</TableCell>
-                <TableCell>
-                    <OrderStatusBadge status={order.status} />
-                </TableCell>
-                <TableCell>{order.timestamp.toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Completed')}>
-                        Mark as Completed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Pending')}>
-                        Mark as Pending
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Failed')}>
-                        Mark as Failed
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {filteredOrders.length === 0 && <div className="text-center p-8 text-muted-foreground">No orders to display.</div>}
+      <CardContent className="pt-6">
+        {loading ? (
+            <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        ) : filteredOrders.length === 0 ? (
+            <Alert>
+                <AlertTitle>No Orders Found</AlertTitle>
+                <AlertDescription>There are no orders with this status.</AlertDescription>
+            </Alert>
+        ) : (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Player ID</TableHead>
+                    <TableHead>User Email</TableHead>
+                    <TableHead>Package</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>
+                        <span className="sr-only">Actions</span>
+                    </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredOrders.map((order) => (
+                    <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.playerId}</TableCell>
+                        <TableCell>{order.userEmail}</TableCell>
+                        <TableCell>{order.productName}</TableCell>
+                        <TableCell>৳{order.productPrice.toFixed(2)}</TableCell>
+                        <TableCell>
+                            <OrderStatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>{order.createdAt.toLocaleString()}</TableCell>
+                        <TableCell>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Completed')}>
+                                Mark as Completed
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Pending')}>
+                                Mark as Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Failed')}>
+                                Mark as Failed
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        )}
       </CardContent>
     </Card>
   )
@@ -124,24 +173,7 @@ export default function AdminOrdersTable() {
             <TabsTrigger value="failed">Failed ({failedCount})</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1">
-                <ListFilter className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Filter
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem checked>Pending</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem checked>Completed</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem checked>Failed</DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button size="sm" variant="outline" className="h-8 gap-1">
+          <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
             <File className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Export
