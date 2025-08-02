@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -158,16 +157,11 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-grow">
-        <section className="relative h-64 md:h-80 w-full">
-          <Image
-            src="https://i.ibb.co/Ld1vV2j/Garena-Free-Fire-Wallpaper-2-1024x576.jpg"
-            alt="Free Fire banner"
-            fill
-            style={{objectFit: 'cover'}}
-            className="brightness-50"
-            priority
-          />
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
+        <section 
+            className="relative h-64 md:h-80 w-full bg-cover bg-center bg-no-repeat"
+            style={{backgroundImage: 'url(https://i.ibb.co/Ld1vV2j/Garena-Free-Fire-Wallpaper-2-1024x576.jpg)'}}
+        >
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
               Diamond Depot
             </h1>
@@ -180,7 +174,7 @@ export default function HomePage() {
         <section className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-2xl mx-auto">
             <div className="space-y-8">
-              <Card className="shadow-lg">
+              <Card className="shadow-lg overflow-hidden">
                 <CardHeader>
                   <CardTitle className="font-headline text-2xl flex items-center gap-2">
                     <Gem className="text-primary" />
