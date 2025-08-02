@@ -159,7 +159,7 @@ export default function HomePage() {
       <main className="flex-grow">
         <section 
             className="relative h-64 md:h-80 w-full bg-cover bg-center bg-no-repeat"
-            style={{backgroundImage: 'url(https://i.ibb.co/Ld1vV2j/Garena-Free-Fire-Wallpaper-2-1024x576.jpg)'}}
+            style={{backgroundImage: 'url(https://i.ibb.co/p60sY0qv/download-2.jpg)'}}
         >
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
