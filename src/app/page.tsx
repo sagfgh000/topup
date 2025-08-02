@@ -159,7 +159,7 @@ export default function HomePage() {
       <main className="flex-grow">
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src="https://placehold.co/1600x600.png"
+            src="/free-fire-banner.jpg"
             alt="Free Fire banner"
             layout="fill"
             objectFit="cover"
@@ -290,3 +290,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
