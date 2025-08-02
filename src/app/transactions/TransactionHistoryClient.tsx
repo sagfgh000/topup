@@ -10,9 +10,10 @@ import {
   getDocs,
   orderBy,
   Timestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import type { Order, TopUpRequest } from '@/lib/types';
-import { Loader2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Loader2, ArrowDownLeft, ArrowUpRight, Hourglass, XCircle, CheckCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -31,6 +32,19 @@ type CombinedTransaction = (
   | ({ type: 'TopUp' } & TopUpRequest)
 ) & { date: Date };
 
+const TopUpStatusIcon = ({ status }: { status: TopUpRequest['status'] }) => {
+    switch (status) {
+        case 'Approved':
+            return <CheckCircle className="mr-1 h-3 w-3 text-green-600" />;
+        case 'Rejected':
+            return <XCircle className="mr-1 h-3 w-3 text-red-600" />;
+        case 'Pending':
+            return <Hourglass className="mr-1 h-3 w-3 text-yellow-600" />;
+        default:
+            return <ArrowDownLeft className="mr-1 h-3 w-3" />;
+    }
+}
+
 export default function TransactionHistoryClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -44,17 +58,22 @@ export default function TransactionHistoryClient() {
         return;
     }
 
-    const fetchTransactions = async () => {
-      setLoading(true);
-      try {
-        // Fetch approved top-ups
-        const topUpQuery = query(
-          collection(db, 'topUpRequests'),
-          where('userId', '==', user.uid),
-          where('status', '==', 'Approved'),
-          orderBy('createdAt', 'desc')
-        );
-        const topUpSnapshot = await getDocs(topUpQuery);
+    setLoading(true);
+
+    // Use a combined listener for real-time updates
+    const topUpQuery = query(
+      collection(db, 'topUpRequests'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    const orderQuery = query(
+      collection(db, 'orders'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribeTopUps = onSnapshot(topUpQuery, (topUpSnapshot) => {
         const topUps = topUpSnapshot.docs.map(doc => {
             const data = doc.data() as TopUpRequest;
             return {
@@ -64,16 +83,30 @@ export default function TransactionHistoryClient() {
                 date: (data.createdAt as Timestamp).toDate(),
             }
         });
+        
+        // This is not ideal as it refetches orders every time topups change.
+        // For a larger app, a more sophisticated state management would be better.
+        getDocs(orderQuery).then(orderSnapshot => {
+             const orders = orderSnapshot.docs.map(doc => {
+                const data = doc.data() as Order;
+                return {
+                    ...data,
+                    id: doc.id,
+                    type: 'Order' as const,
+                    date: (data.createdAt as Timestamp).toDate(),
+                }
+            });
+            const combined: CombinedTransaction[] = [...topUps, ...orders];
+            combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+            setTransactions(combined);
+            setLoading(false);
+        });
+    }, (error) => {
+        console.error('Error fetching topups:', error);
+        setLoading(false);
+    });
 
-        // Fetch completed orders
-        const orderQuery = query(
-          collection(db, 'orders'),
-          where('userId', '==', user.uid),
-          // We can add a filter for status if we only want to show completed orders
-          // where('status', '==', 'Completed'), 
-          orderBy('createdAt', 'desc')
-        );
-        const orderSnapshot = await getDocs(orderQuery);
+    const unsubscribeOrders = onSnapshot(orderQuery, (orderSnapshot) => {
         const orders = orderSnapshot.docs.map(doc => {
             const data = doc.data() as Order;
             return {
@@ -84,19 +117,33 @@ export default function TransactionHistoryClient() {
             }
         });
 
-        // Combine and sort
-        const combined: CombinedTransaction[] = [...topUps, ...orders];
-        combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-        setTransactions(combined);
+        getDocs(topUpQuery).then(topUpSnapshot => {
+            const topUps = topUpSnapshot.docs.map(doc => {
+                const data = doc.data() as TopUpRequest;
+                return {
+                    ...data,
+                    id: doc.id,
+                    type: 'TopUp' as const,
+                    date: (data.createdAt as Timestamp).toDate(),
+                }
+            });
+            const combined: CombinedTransaction[] = [...topUps, ...orders];
+            combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+            setTransactions(combined);
+            setLoading(false);
+        });
 
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      } finally {
+    }, (error) => {
+        console.error('Error fetching orders:', error);
         setLoading(false);
-      }
+    });
+
+
+    return () => {
+        unsubscribeTopUps();
+        unsubscribeOrders();
     };
 
-    fetchTransactions();
   }, [user, authLoading, router]);
   
   if (loading || authLoading) {
@@ -124,16 +171,17 @@ export default function TransactionHistoryClient() {
             <TableHead>Type</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions.map((tx) => (
-            <TableRow key={`${tx.type}-${tx.id}`}>
+            <TableRow key={`${tx.type}-${tx.id}`} className={cn(tx.type === 'TopUp' && tx.status === 'Pending' && 'opacity-60')}>
               <TableCell>
                 {tx.type === 'TopUp' ? (
                   <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                    <ArrowDownLeft className="mr-1 h-3 w-3" />
+                    <TopUpStatusIcon status={tx.status} />
                     Top-Up
                   </Badge>
                 ) : (
@@ -147,9 +195,20 @@ export default function TransactionHistoryClient() {
                 {tx.type === 'TopUp' ? `Wallet top-up via ${tx.paymentMethod}` : `Order for ${tx.productName}`}
               </TableCell>
               <TableCell>{tx.date.toLocaleString()}</TableCell>
+               <TableCell>
+                <Badge variant={
+                    tx.type === 'Order' ? 
+                        (tx.status === 'Completed' ? 'default' : tx.status === 'Failed' ? 'destructive' : 'secondary') :
+                    tx.type === 'TopUp' ?
+                        (tx.status === 'Approved' ? 'default' : tx.status === 'Rejected' ? 'destructive' : 'secondary') : 'secondary'
+                }>
+                    {tx.status}
+                </Badge>
+               </TableCell>
               <TableCell className={cn(
                 "text-right font-bold",
-                 tx.type === 'TopUp' ? 'text-green-600' : 'text-red-600'
+                 tx.type === 'TopUp' && tx.status === 'Approved' ? 'text-green-600' : 
+                 tx.type === 'Order' ? 'text-red-600' : 'text-muted-foreground'
               )}>
                 {tx.type === 'TopUp' ? '+' : '-'}৳{tx.type === 'TopUp' ? tx.amount.toFixed(2) : tx.productPrice.toFixed(2)}
               </TableCell>
