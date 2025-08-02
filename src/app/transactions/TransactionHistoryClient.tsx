@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -70,63 +71,44 @@ export default function TransactionHistoryClient() {
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc')
     );
+    
+    let orders: Order[] = [];
+    let topUps: TopUpRequest[] = [];
 
-    let combined: CombinedTransaction[] = [];
-    let ordersData: Order[] = [];
-    let topUpsData: TopUpRequest[] = [];
-    let ordersLoaded = false;
-    let topupsLoaded = false;
-
-    const updateTransactions = () => {
-        if (!ordersLoaded || !topupsLoaded) return;
-        
-        combined = [
-            ...topUpsData.map(t => ({...t, type: 'TopUp' as const, date: t.createdAt })),
-            ...ordersData.map(o => ({...o, type: 'Order' as const, date: o.createdAt }))
-        ];
-        combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-        setTransactions(combined);
-        setLoading(false);
-    }
+    const combineAndSetTransactions = () => {
+      const combined = [
+        ...topUps.map(t => ({ ...t, type: 'TopUp' as const, date: t.createdAt })),
+        ...orders.map(o => ({ ...o, type: 'Order' as const, date: o.createdAt }))
+      ];
+      combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setTransactions(combined);
+    };
 
     const unsubscribeTopUps = onSnapshot(topUpQuery, (snapshot) => {
-        topUpsData = snapshot.docs.map(doc => {
-            const data = doc.data() as TopUpRequest;
-            // The createdAt field might be a Timestamp from Firestore or a Date object we created.
-            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt;
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: createdAtDate,
-            }
+        topUps = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const createdAtDate = (data.createdAt as Timestamp)?.toDate() || new Date();
+            return { ...data, id: doc.id, createdAt: createdAtDate } as TopUpRequest;
         });
-        topupsLoaded = true;
-        updateTransactions();
+        combineAndSetTransactions();
+        setLoading(false); // Assume loading is false after first fetch
     }, (error) => {
         console.error('Error fetching topups:', error);
-        topupsLoaded = true;
-        updateTransactions();
+        setLoading(false);
     });
 
     const unsubscribeOrders = onSnapshot(orderQuery, (snapshot) => {
-        ordersData = snapshot.docs.map(doc => {
-            const data = doc.data() as Order;
-             // The createdAt field might be a Timestamp from Firestore or a Date object we created.
-            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt;
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: createdAtDate,
-            }
+        orders = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const createdAtDate = (data.createdAt as Timestamp)?.toDate() || new Date();
+            return { ...data, id: doc.id, createdAt: createdAtDate } as Order;
         });
-        ordersLoaded = true;
-        updateTransactions();
+        combineAndSetTransactions();
+        setLoading(false); // Assume loading is false after first fetch
     }, (error) => {
         console.error('Error fetching orders:', error);
-        ordersLoaded = true;
-        updateTransactions();
+        setLoading(false);
     });
-
 
     return () => {
         unsubscribeTopUps();
