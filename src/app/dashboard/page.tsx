@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Gem, History, LogOut, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { Wallet } from '@/lib/types';
 import { AddMoneyDialog } from '@/components/AddMoneyDialog';
+import RecentOrders from '@/components/RecentOrders';
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
@@ -89,10 +90,7 @@ export default function DashboardPage() {
                     <Gem className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                   <div className="text-center text-muted-foreground py-6">
-                       <p>You haven't placed any orders yet.</p>
-                       <Button variant="link" asChild className="mt-2"><Link href="/">Place an Order</Link></Button>
-                   </div>
+                   <RecentOrders />
                 </CardContent>
             </Card>
 
