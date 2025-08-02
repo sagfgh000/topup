@@ -99,7 +99,7 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                        <>
-                         <div className="text-4xl font-bold">৳{wallet?.balance.toFixed(2) || '0.00'}</div>
+                         <div className="text-4xl font-bold">৳{(wallet?.balance || 0).toFixed(2)}</div>
                          <p className="text-xs text-muted-foreground mt-1">
                              Available to spend on orders.
                          </p>
