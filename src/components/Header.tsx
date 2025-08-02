@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Gem, LogOut, User as UserIcon, LayoutDashboard } from 'lucide-react';
+import { Gem, LogOut, User as UserIcon, LayoutDashboard, Phone } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +65,9 @@ export default function Header() {
                         <Link href="/admin/dashboard"><UserIcon className="mr-2 h-4 w-4" />Admin</Link>
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem asChild>
+                       <Link href="/contact"><Phone className="mr-2 h-4 w-4" />Contact Us</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
