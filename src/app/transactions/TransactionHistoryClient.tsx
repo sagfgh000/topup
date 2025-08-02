@@ -48,6 +48,8 @@ const TopUpStatusIcon = ({ status }: { status: TopUpRequest['status'] }) => {
 export default function TransactionHistoryClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [topUps, setTopUps] = React.useState<TopUpRequest[]>([]);
   const [transactions, setTransactions] = React.useState<CombinedTransaction[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -60,7 +62,6 @@ export default function TransactionHistoryClient() {
 
     setLoading(true);
 
-    // Use a combined listener for real-time updates
     const topUpQuery = query(
       collection(db, 'topUpRequests'),
       where('userId', '==', user.uid),
@@ -73,66 +74,33 @@ export default function TransactionHistoryClient() {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribeTopUps = onSnapshot(topUpQuery, (topUpSnapshot) => {
-        const topUps = topUpSnapshot.docs.map(doc => {
+    const unsubscribeTopUps = onSnapshot(topUpQuery, (snapshot) => {
+        const topUpsData = snapshot.docs.map(doc => {
             const data = doc.data() as TopUpRequest;
             return {
                 ...data,
                 id: doc.id,
-                type: 'TopUp' as const,
-                date: (data.createdAt as Timestamp).toDate(),
+                createdAt: (data.createdAt as Timestamp).toDate(),
             }
         });
-        
-        // This is not ideal as it refetches orders every time topups change.
-        // For a larger app, a more sophisticated state management would be better.
-        getDocs(orderQuery).then(orderSnapshot => {
-             const orders = orderSnapshot.docs.map(doc => {
-                const data = doc.data() as Order;
-                return {
-                    ...data,
-                    id: doc.id,
-                    type: 'Order' as const,
-                    date: (data.createdAt as Timestamp).toDate(),
-                }
-            });
-            const combined: CombinedTransaction[] = [...topUps, ...orders];
-            combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-            setTransactions(combined);
-            setLoading(false);
-        });
+        setTopUps(topUpsData);
+        setLoading(false);
     }, (error) => {
         console.error('Error fetching topups:', error);
         setLoading(false);
     });
 
-    const unsubscribeOrders = onSnapshot(orderQuery, (orderSnapshot) => {
-        const orders = orderSnapshot.docs.map(doc => {
+    const unsubscribeOrders = onSnapshot(orderQuery, (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => {
             const data = doc.data() as Order;
             return {
                 ...data,
                 id: doc.id,
-                type: 'Order' as const,
-                date: (data.createdAt as Timestamp).toDate(),
+                createdAt: (data.createdAt as Timestamp).toDate(),
             }
         });
-
-        getDocs(topUpQuery).then(topUpSnapshot => {
-            const topUps = topUpSnapshot.docs.map(doc => {
-                const data = doc.data() as TopUpRequest;
-                return {
-                    ...data,
-                    id: doc.id,
-                    type: 'TopUp' as const,
-                    date: (data.createdAt as Timestamp).toDate(),
-                }
-            });
-            const combined: CombinedTransaction[] = [...topUps, ...orders];
-            combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-            setTransactions(combined);
-            setLoading(false);
-        });
-
+        setOrders(ordersData);
+        setLoading(false);
     }, (error) => {
         console.error('Error fetching orders:', error);
         setLoading(false);
@@ -145,6 +113,15 @@ export default function TransactionHistoryClient() {
     };
 
   }, [user, authLoading, router]);
+
+  React.useEffect(() => {
+    const combined: CombinedTransaction[] = [
+        ...topUps.map(t => ({...t, type: 'TopUp' as const, date: t.createdAt })),
+        ...orders.map(o => ({...o, type: 'Order' as const, date: o.createdAt }))
+    ];
+    combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+    setTransactions(combined);
+  }, [orders, topUps]);
   
   if (loading || authLoading) {
     return (
