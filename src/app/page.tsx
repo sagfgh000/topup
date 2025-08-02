@@ -293,7 +293,7 @@ export default function HomePage() {
             <AlertDialogTitle>Authentication Required</AlertDialogTitle>
             <AlertDialogDescription>
               You need to be logged in to place an order. Would you like to go to the login page?
-            </AlergDialogDescription>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
