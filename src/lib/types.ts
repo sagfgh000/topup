@@ -20,6 +20,7 @@ export type Order = {
 
 export type Wallet = {
     balance: number;
+    hasAcceptedAgreement?: boolean;
 };
 
 export type TopUpRequest = {

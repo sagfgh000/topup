@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Gem, History, LogOut, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Wallet } from '@/lib/types';
 import { AddMoneyDialog } from '@/components/AddMoneyDialog';
 import RecentOrders from '@/components/RecentOrders';
+import { AgreementDialog } from '@/components/AgreementDialog';
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [walletLoading, setWalletLoading] = useState(true);
   const [isAddMoneyOpen, setIsAddMoneyOpen] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -33,9 +35,16 @@ export default function DashboardPage() {
       const walletRef = doc(db, 'wallets', user.uid);
       const unsubscribe = onSnapshot(walletRef, (docSnap) => {
         if (docSnap.exists()) {
-          setWallet(docSnap.data() as Wallet);
+          const walletData = docSnap.data() as Wallet;
+          setWallet(walletData);
+          if (!walletData.hasAcceptedAgreement) {
+              setShowAgreement(true);
+          }
         } else {
-          setWallet({ balance: 0 }); // Initialize if doesn't exist
+          // If wallet doesn't exist, it means user is new or hasn't topped up.
+          // They also won't have accepted the agreement.
+          setWallet({ balance: 0, hasAcceptedAgreement: false });
+          setShowAgreement(true);
         }
         setWalletLoading(false);
       });
@@ -43,13 +52,29 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  const handleAgree = async () => {
+    if (user) {
+        const walletRef = doc(db, 'wallets', user.uid);
+        try {
+            await setDoc(walletRef, { hasAcceptedAgreement: true }, { merge: true });
+            setShowAgreement(false);
+        } catch (e) {
+            console.error("Failed to save agreement", e);
+        }
+    }
+  }
 
-  if (loading || !user) {
+
+  if (loading || !user || walletLoading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
-            <div className="text-lg">Loading...</div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
+  }
+
+  if (showAgreement) {
+      return <AgreementDialog onAgree={handleAgree} onLogout={logout} />;
   }
 
   return (
