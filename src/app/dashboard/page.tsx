@@ -1,23 +1,47 @@
 'use client';
 
+import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Gem, History, LogOut } from 'lucide-react';
+import { DollarSign, Gem, History, LogOut, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import type { Wallet } from '@/lib/types';
+import { AddMoneyDialog } from '@/components/AddMoneyDialog';
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [isAddMoneyOpen, setIsAddMoneyOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+  
+  useEffect(() => {
+    if (user) {
+      const walletRef = doc(db, 'wallets', user.uid);
+      const unsubscribe = onSnapshot(walletRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setWallet(docSnap.data() as Wallet);
+        } else {
+          setWallet({ balance: 0 }); // Initialize if doesn't exist
+        }
+        setWalletLoading(false);
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
 
   if (loading || !user) {
     return (
@@ -43,11 +67,19 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-4xl font-bold">৳0.00</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        You have no funds. Top up to place an order.
-                    </p>
-                    <Button className="mt-4" size="sm">Add Money</Button>
+                    {walletLoading ? (
+                        <div className="flex items-center justify-center pt-4">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                       <>
+                         <div className="text-4xl font-bold">৳{wallet?.balance.toFixed(2) || '0.00'}</div>
+                         <p className="text-xs text-muted-foreground mt-1">
+                             Available to spend on orders.
+                         </p>
+                       </>
+                    )}
+                    <Button className="mt-4" size="sm" onClick={() => setIsAddMoneyOpen(true)}>Add Money</Button>
                 </CardContent>
             </Card>
 
@@ -77,6 +109,7 @@ export default function DashboardPage() {
             </Card>
         </div>
       </main>
+      <AddMoneyDialog isOpen={isAddMoneyOpen} onOpenChange={setIsAddMoneyOpen} />
     </>
   );
 }

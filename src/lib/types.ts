@@ -15,3 +15,18 @@ export type Order = {
   status: 'Pending' | 'Completed' | 'Failed';
   timestamp: Date;
 };
+
+export type Wallet = {
+    balance: number;
+};
+
+export type TopUpRequest = {
+    id?: string;
+    userId: string;
+    userEmail: string;
+    amount: number;
+    paymentMethod: 'bKash' | 'Nagad';
+    transactionId: string;
+    status: 'Pending' | 'Approved' | 'Rejected';
+    createdAt: Date;
+}

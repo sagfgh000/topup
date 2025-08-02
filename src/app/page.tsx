@@ -33,12 +33,15 @@ import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const orderFormSchema = z.object({
   playerId: z.string().min(5, 'Player ID must be at least 5 characters.'),
@@ -49,7 +52,10 @@ const orderFormSchema = z.object({
 export default function HomePage() {
   const [selectedPackage, setSelectedPackage] = React.useState<Product | null>(products[1]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
+  const [isLoginPromptOpen, setIsLoginPromptOpen] = React.useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof orderFormSchema>>({
     resolver: zodResolver(orderFormSchema),
@@ -61,6 +67,10 @@ export default function HomePage() {
   });
 
   function onSubmit(values: z.infer<typeof orderFormSchema>) {
+    if (!user) {
+        setIsLoginPromptOpen(true);
+        return;
+    }
     if (!selectedPackage) {
       toast({
         variant: 'destructive',
@@ -207,6 +217,21 @@ export default function HomePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setIsSuccessModalOpen(false)}>Great!</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={isLoginPromptOpen} onOpenChange={setIsLoginPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Authentication Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              You need to be logged in to place an order. Would you like to go to the login page?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push('/login')}>Login</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
