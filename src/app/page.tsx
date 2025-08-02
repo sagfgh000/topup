@@ -178,7 +178,7 @@ export default function HomePage() {
         </section>
 
         <section className="container mx-auto px-4 py-8 md:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          <div className="max-w-2xl mx-auto">
             <div className="space-y-8">
               <Card className="shadow-lg">
                 <CardHeader>
@@ -257,16 +257,6 @@ export default function HomePage() {
                   </Form>
                 </CardContent>
               </Card>
-            </div>
-             <div className="hidden lg:block">
-                <Image
-                    src="https://placehold.co/500x500.png"
-                    alt="Free Fire diamonds in a chest"
-                    width={500}
-                    height={500}
-                    className="rounded-lg shadow-2xl object-cover"
-                    data-ai-hint="diamond chest"
-                />
             </div>
           </div>
         </section>
