@@ -17,6 +17,7 @@ import { Skeleton } from './ui/skeleton';
 
 export default function Header() {
   const { user, loading, logout } = useAuth();
+  const isAdmin = user?.email === 'kymt83091@gmail.com';
 
   const getInitials = (email: string | null | undefined) => {
     if (!email) return 'U';
@@ -63,9 +64,11 @@ export default function Header() {
                     <DropdownMenuItem asChild>
                        <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Link>
                     </DropdownMenuItem>
-                     <DropdownMenuItem asChild>
-                       <Link href="/admin/dashboard"><UserIcon className="mr-2 h-4 w-4" />Admin</Link>
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                        <DropdownMenuItem asChild>
+                        <Link href="/admin/dashboard"><UserIcon className="mr-2 h-4 w-4" />Admin</Link>
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />

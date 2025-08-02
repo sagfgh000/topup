@@ -30,16 +30,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
-  
+  const isAdmin = user?.email === 'kymt83091@gmail.com';
+
   React.useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return; 
+
+    if (!user) {
         router.push('/admin/login');
+        return;
     }
-    // In a real app, you would also check for admin role here
-  }, [user, loading, router]);
+    
+    if (!isAdmin) {
+        router.push('/dashboard');
+    }
+  }, [user, loading, router, isAdmin]);
 
 
-  if (loading || !user) {
+  if (loading || !user || !isAdmin) {
       return <div className="flex h-screen items-center justify-center">Loading admin panel...</div>
   }
 

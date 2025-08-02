@@ -28,8 +28,8 @@ export default function AdminLoginPage() {
   const form = useForm<z.infer<typeof adminLoginFormSchema>>({
     resolver: zodResolver(adminLoginFormSchema),
     defaultValues: {
-      email: "admin@example.com",
-      password: "password",
+      email: "kymt83091@gmail.com",
+      password: "hinatAA109@#$",
     },
   });
 
@@ -37,10 +37,11 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       await login(values.email, values.password);
-      // In a real app, you would also check if the user has admin privileges
+      // The admin layout will handle redirection based on the user's role.
       router.push('/admin/dashboard');
     } catch(e) {
       console.error(e);
+      // Toast with error is shown from AuthContext
     } finally {
         setLoading(false);
     }
