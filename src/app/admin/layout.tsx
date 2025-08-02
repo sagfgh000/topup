@@ -32,23 +32,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
-  const isAdmin = user?.email === 'kymt83091@gmail.com';
+  
+  // This should be a state that is managed after login, but for simplicity, we check directly.
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isAuthChecked, setIsAuthChecked] = React.useState(false);
+
 
   React.useEffect(() => {
-    if (loading) return; 
+    if (loading) return;
 
     if (!user) {
-        router.push('/admin/login');
-        return;
+      router.push('/admin/login');
+      return;
     }
+
+    // This is a basic client-side check. A more robust solution would involve custom claims on the Firebase user token.
+    const checkAdminStatus = user.email === 'kymt83091@gmail.com';
+    setIsAdmin(checkAdminStatus);
     
-    if (!isAdmin) {
-        router.push('/dashboard');
+    if (!checkAdminStatus) {
+      router.push('/dashboard');
     }
-  }, [user, loading, router, isAdmin]);
+    setIsAuthChecked(true);
+
+  }, [user, loading, router]);
 
 
-  if (loading || !user || !isAdmin) {
+  if (loading || !isAuthChecked || !isAdmin) {
       return <div className="flex h-screen items-center justify-center">Loading admin panel...</div>
   }
 

@@ -103,7 +103,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="grid gap-2 pt-4">
                     <Button variant="outline" asChild><Link href="/orders">Order History</Link></Button>
-                    <Button variant="outline">Transaction History</Button>
+                    <Button variant="outline" asChild><Link href="/transactions">Transaction History</Link></Button>
                     <Button variant="destructive" onClick={logout}><LogOut className="mr-2 h-4 w-4"/>Logout</Button>
                 </CardContent>
             </Card>
