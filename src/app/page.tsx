@@ -7,9 +7,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Gem, CreditCard, ShieldCheck, Loader2 } from 'lucide-react';
-import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 
-import { products } from '@/lib/data';
 import type { Product, Order, Wallet } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
@@ -45,16 +44,16 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const orderFormSchema = z.object({
   playerId: z.string().min(5, 'Player ID must be at least 5 characters.'),
-  // We will use wallet balance, so payment method and transaction ID are no longer needed here.
-  // paymentMethod: z.enum(['bKash', 'Nagad', 'Rocket']),
-  // transactionId: z.string().min(5, 'Transaction ID is required.'),
 });
 
 export default function HomePage() {
-  const [selectedPackage, setSelectedPackage] = React.useState<Product | null>(products[1]);
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = React.useState(true);
+  const [selectedPackage, setSelectedPackage] = React.useState<Product | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
   const [isLoginPromptOpen, setIsLoginPromptOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -68,6 +67,30 @@ export default function HomePage() {
       playerId: '',
     },
   });
+  
+  React.useEffect(() => {
+    const q = query(collection(db, 'products'), orderBy('price', 'asc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const productsData: Product[] = [];
+        querySnapshot.forEach((doc) => {
+            productsData.push({ id: doc.id, ...doc.data() } as Product);
+        });
+        setProducts(productsData);
+        if (productsData.length > 1) {
+            setSelectedPackage(productsData[1]);
+        } else if (productsData.length > 0) {
+            setSelectedPackage(productsData[0]);
+        }
+        setProductsLoading(false);
+    }, (error) => {
+        console.error("Error fetching products: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch products.' });
+        setProductsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
 
   async function onSubmit(values: z.infer<typeof orderFormSchema>) {
     if (!user) {
@@ -99,7 +122,7 @@ export default function HomePage() {
         const newBalance = currentBalance - orderCost;
         transaction.set(walletRef, { balance: newBalance }, { merge: true });
 
-        const newOrder: Omit<Order, 'id' | 'timestamp'> = {
+        const newOrder: Omit<Order, 'id' | 'createdAt'> = {
           userId: user.uid,
           userEmail: user.email || 'N/A',
           playerId: values.playerId,
@@ -163,23 +186,29 @@ export default function HomePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {products
-                  .filter((p) => p.game === 'Free Fire')
-                  .map((pkg) => (
-                    <button
-                      key={pkg.id}
-                      onClick={() => setSelectedPackage(pkg)}
-                      className={cn(
-                        'p-4 rounded-lg border-2 text-center transition-all duration-200',
-                        selectedPackage?.id === pkg.id
-                          ? 'border-primary bg-primary/10 ring-2 ring-primary'
-                          : 'border-border hover:border-primary/50 hover:bg-muted'
-                      )}
-                    >
-                      <div className="font-bold text-lg">{pkg.name}</div>
-                      <div className="text-primary font-semibold">{pkg.price} Taka</div>
-                    </button>
-                  ))}
+                {productsLoading ? (
+                    Array.from({ length: 6 }).map((_, index) => (
+                        <Skeleton key={index} className="h-24 w-full" />
+                    ))
+                ) : (
+                    products
+                    .filter((p) => p.game === 'Free Fire')
+                    .map((pkg) => (
+                        <button
+                        key={pkg.id}
+                        onClick={() => setSelectedPackage(pkg)}
+                        className={cn(
+                            'p-4 rounded-lg border-2 text-center transition-all duration-200',
+                            selectedPackage?.id === pkg.id
+                            ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                            : 'border-border hover:border-primary/50 hover:bg-muted'
+                        )}
+                        >
+                        <div className="font-bold text-lg">{pkg.name}</div>
+                        <div className="text-primary font-semibold">{pkg.price} Taka</div>
+                        </button>
+                    ))
+                )}
               </CardContent>
             </Card>
 
@@ -207,9 +236,9 @@ export default function HomePage() {
                       )}
                     />
                     <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg border">
-                      The cost for <strong>{selectedPackage?.name}</strong> ({selectedPackage?.price} Taka) will be deducted from your wallet balance.
+                      The cost for <strong>{selectedPackage?.name || '...'}</strong> ({selectedPackage ? `${selectedPackage.price} Taka` : '...'}) will be deducted from your wallet balance.
                     </div>
-                    <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage || isSubmitting}>
+                    <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage || isSubmitting || productsLoading}>
                       {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />

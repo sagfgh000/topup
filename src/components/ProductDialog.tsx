@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,16 +34,17 @@ import {
 } from '@/components/ui/select';
 
 const productSchema = z.object({
-  id: z.string().optional(),
   name: z.string().min(3, 'Product name is required.'),
   price: z.coerce.number().min(0, 'Price must be a positive number.'),
   game: z.enum(['Free Fire', 'MLBB']),
 });
 
+type ProductFormData = Omit<Product, 'id'>;
+
 type ProductDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (product: Product) => void;
+  onSave: (product: ProductFormData) => void;
   product: Product | null;
 };
 
@@ -57,16 +59,16 @@ export function ProductDialog({
   });
   
   React.useEffect(() => {
-    if (product) {
+    if (isOpen && product) {
       form.reset(product);
-    } else {
+    } else if (isOpen && !product) {
       form.reset({ name: '', price: 0, game: 'Free Fire' });
     }
   }, [product, form, isOpen]);
 
 
   const onSubmit = (values: z.infer<typeof productSchema>) => {
-    onSave({ ...values, id: product?.id || '' });
+    onSave(values);
     onOpenChange(false);
   };
 
@@ -133,6 +135,7 @@ export function ProductDialog({
               )}
             />
             <DialogFooter>
+               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit">Save changes</Button>
             </DialogFooter>
           </form>
