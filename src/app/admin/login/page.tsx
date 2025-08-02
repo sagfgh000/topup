@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
     resolver: zodResolver(adminLoginFormSchema),
     defaultValues: {
       email: "kymt83091@gmail.com",
-      password: "hinatAA109@#$",
+      password: "",
     },
   });
 
