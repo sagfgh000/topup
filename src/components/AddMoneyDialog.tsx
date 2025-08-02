@@ -40,13 +40,13 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Copy } from 'lucide-react';
 
 const addMoneySchema = z.object({
-  amount: z.coerce.number().min(10, 'Minimum top-up is 10 Taka.'),
+  amount: z.coerce.number().min(50, 'Minimum top-up is 50 Taka.'),
   paymentMethod: z.enum(['bKash', 'Nagad']),
   transactionId: z.string().min(5, 'Transaction ID is required.'),
 });
 
 const paymentAccounts = {
-    bKash: '01712345678',
+    bKash: '01845938953',
     Nagad: '01812345678',
 }
 
