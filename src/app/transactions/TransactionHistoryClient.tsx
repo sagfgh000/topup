@@ -7,10 +7,9 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   orderBy,
   Timestamp,
-  onSnapshot,
 } from 'firebase/firestore';
 import type { Order, TopUpRequest } from '@/lib/types';
 import { Loader2, ArrowDownLeft, ArrowUpRight, Hourglass, XCircle, CheckCircle } from 'lucide-react';
@@ -48,8 +47,6 @@ const TopUpStatusIcon = ({ status }: { status: TopUpRequest['status'] }) => {
 export default function TransactionHistoryClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [orders, setOrders] = React.useState<Order[]>([]);
-  const [topUps, setTopUps] = React.useState<TopUpRequest[]>([]);
   const [transactions, setTransactions] = React.useState<CombinedTransaction[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -74,36 +71,60 @@ export default function TransactionHistoryClient() {
       orderBy('createdAt', 'desc')
     );
 
+    let combined: CombinedTransaction[] = [];
+    let ordersData: Order[] = [];
+    let topUpsData: TopUpRequest[] = [];
+    let ordersLoaded = false;
+    let topupsLoaded = false;
+
+    const updateTransactions = () => {
+        if (!ordersLoaded || !topupsLoaded) return;
+        
+        combined = [
+            ...topUpsData.map(t => ({...t, type: 'TopUp' as const, date: t.createdAt })),
+            ...ordersData.map(o => ({...o, type: 'Order' as const, date: o.createdAt }))
+        ];
+        combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+        setTransactions(combined);
+        setLoading(false);
+    }
+
     const unsubscribeTopUps = onSnapshot(topUpQuery, (snapshot) => {
-        const topUpsData = snapshot.docs.map(doc => {
+        topUpsData = snapshot.docs.map(doc => {
             const data = doc.data() as TopUpRequest;
+            // The createdAt field might be a Timestamp from Firestore or a Date object we created.
+            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt;
             return {
                 ...data,
                 id: doc.id,
-                createdAt: (data.createdAt as Timestamp).toDate(),
+                createdAt: createdAtDate,
             }
         });
-        setTopUps(topUpsData);
-        setLoading(false);
+        topupsLoaded = true;
+        updateTransactions();
     }, (error) => {
         console.error('Error fetching topups:', error);
-        setLoading(false);
+        topupsLoaded = true;
+        updateTransactions();
     });
 
     const unsubscribeOrders = onSnapshot(orderQuery, (snapshot) => {
-        const ordersData = snapshot.docs.map(doc => {
+        ordersData = snapshot.docs.map(doc => {
             const data = doc.data() as Order;
+             // The createdAt field might be a Timestamp from Firestore or a Date object we created.
+            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt;
             return {
                 ...data,
                 id: doc.id,
-                createdAt: (data.createdAt as Timestamp).toDate(),
+                createdAt: createdAtDate,
             }
         });
-        setOrders(ordersData);
-        setLoading(false);
+        ordersLoaded = true;
+        updateTransactions();
     }, (error) => {
         console.error('Error fetching orders:', error);
-        setLoading(false);
+        ordersLoaded = true;
+        updateTransactions();
     });
 
 
@@ -114,15 +135,6 @@ export default function TransactionHistoryClient() {
 
   }, [user, authLoading, router]);
 
-  React.useEffect(() => {
-    const combined: CombinedTransaction[] = [
-        ...topUps.map(t => ({...t, type: 'TopUp' as const, date: t.createdAt })),
-        ...orders.map(o => ({...o, type: 'Order' as const, date: o.createdAt }))
-    ];
-    combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-    setTransactions(combined);
-  }, [orders, topUps]);
-  
   if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center py-12">
