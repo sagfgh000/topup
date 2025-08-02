@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -11,6 +12,7 @@ import {
   writeBatch,
   getDoc,
   runTransaction,
+  updateDoc,
 } from 'firebase/firestore';
 import type { TopUpRequest, Wallet } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -105,29 +107,36 @@ export default function AdminTopUpsTable() {
     if (!request.id) return;
     setProcessingId(request.id);
 
+    const requestRef = doc(db, 'topUpRequests', request.id);
+
     try {
+      if (newStatus === 'Approved') {
+        // Use a transaction to ensure atomicity: update balance AND request status
         await runTransaction(db, async (transaction) => {
-            const requestRef = doc(db, 'topUpRequests', request.id!);
             const walletRef = doc(db, 'wallets', request.userId);
-
-            // Get current wallet balance
             const walletDoc = await transaction.get(walletRef);
-            const currentBalance = walletDoc.exists() ? (walletDoc.data() as Wallet).balance : 0;
-
-            // Update request status
-            transaction.update(requestRef, { status: newStatus });
-
-            // If approved, update wallet balance
-            if (newStatus === 'Approved') {
+            
+            if (!walletDoc.exists()) {
+                // If wallet doesn't exist, create it with the top-up amount
+                transaction.set(walletRef, { balance: request.amount });
+            } else {
+                const currentBalance = walletDoc.data().balance;
                 const newBalance = currentBalance + request.amount;
-                transaction.set(walletRef, { balance: newBalance }, { merge: true });
+                transaction.update(walletRef, { balance: newBalance });
             }
+            
+            // Finally, update the request status
+            transaction.update(requestRef, { status: newStatus });
         });
+      } else {
+        // If rejecting, just update the status
+        await updateDoc(requestRef, { status: newStatus });
+      }
         
-        toast({
-            title: `Request ${newStatus}`,
-            description: `Request from ${request.userEmail} has been ${newStatus.toLowerCase()}.`,
-        });
+      toast({
+          title: `Request ${newStatus}`,
+          description: `Request from ${request.userEmail} has been ${newStatus.toLowerCase()}.`,
+      });
 
     } catch (error) {
         console.error('Error processing request: ', error);
