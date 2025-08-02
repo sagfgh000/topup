@@ -107,15 +107,16 @@ export default function AdminOrdersTable() {
                 <AlertDescription>There are no orders with this status.</AlertDescription>
             </Alert>
         ) : (
+          <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
                     <TableHead>Player ID</TableHead>
-                    <TableHead>User Email</TableHead>
+                    <TableHead className="hidden sm:table-cell">User Email</TableHead>
                     <TableHead>Package</TableHead>
-                    <TableHead>Price</TableHead>
+                    <TableHead className="hidden md:table-cell">Price</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date</TableHead>
                     <TableHead>
                         <span className="sr-only">Actions</span>
                     </TableHead>
@@ -125,13 +126,13 @@ export default function AdminOrdersTable() {
                     {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.playerId}</TableCell>
-                        <TableCell>{order.userEmail}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{order.userEmail}</TableCell>
                         <TableCell>{order.productName}</TableCell>
-                        <TableCell>৳{order.productPrice.toFixed(2)}</TableCell>
+                        <TableCell className="hidden md:table-cell">৳{order.productPrice.toFixed(2)}</TableCell>
                         <TableCell>
                             <OrderStatusBadge status={order.status} />
                         </TableCell>
-                        <TableCell>{order.createdAt.toLocaleString()}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{order.createdAt.toLocaleString()}</TableCell>
                         <TableCell>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -158,6 +159,7 @@ export default function AdminOrdersTable() {
                     ))}
                 </TableBody>
             </Table>
+            </div>
         )}
       </CardContent>
     </Card>
@@ -166,7 +168,7 @@ export default function AdminOrdersTable() {
   return (
     <Tabs defaultValue="all">
       <div className="flex items-center">
-        <TabsList>
+        <TabsList className="overflow-x-auto h-auto py-1">
             <TabsTrigger value="all">All ({allCount})</TabsTrigger>
             <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({completedCount})</TabsTrigger>

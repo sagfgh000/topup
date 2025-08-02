@@ -67,7 +67,7 @@ export default function OrderHistory() {
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col sm:flex-row sm:items-end gap-4">
           <FormField
             control={form.control}
             name="playerId"
@@ -81,7 +81,7 @@ export default function OrderHistory() {
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             {loading ? <Loader2 className="animate-spin" /> : 'Search'}
           </Button>
         </form>
@@ -113,9 +113,9 @@ export default function OrderHistory() {
                   <TableBody>
                     {userOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                        <TableCell className="font-mono text-xs truncate max-w-[100px] sm:max-w-xs">{order.id}</TableCell>
                         <TableCell>{order.productName}</TableCell>
-                        <TableCell>{order.createdAt.toLocaleString()}</TableCell>
+                        <TableCell className="whitespace-nowrap">{order.createdAt.toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <OrderStatusBadge status={order.status} />
                         </TableCell>

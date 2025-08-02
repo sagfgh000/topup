@@ -54,7 +54,7 @@ const StatusBadge = ({ status }: { status: TopUpRequest['status'] }) => {
   }[status];
 
   return (
-    <Badge variant={variant} className={cn('font-semibold', className)}>
+    <Badge variant={variant} className={cn('font-semibold whitespace-nowrap', className)}>
       {status}
     </Badge>
   );
@@ -171,55 +171,57 @@ export default function AdminTopUpsTable() {
             </AlertDescription>
           </Alert>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {requests.map((req) => (
-                <TableRow key={req.id}>
-                  <TableCell className="font-medium">{req.userEmail}</TableCell>
-                  <TableCell>৳{req.amount.toFixed(2)}</TableCell>
-                  <TableCell>{req.paymentMethod}</TableCell>
-                  <TableCell>{req.transactionId}</TableCell>
-                  <TableCell>{req.createdAt.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={req.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {req.status === 'Pending' && (
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRequest(req, 'Approved')}
-                          disabled={!!processingId}
-                        >
-                          {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Approve'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRequest(req, 'Rejected')}
-                          disabled={!!processingId}
-                        >
-                           {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Reject'}
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead className="hidden sm:table-cell">Method</TableHead>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                {requests.map((req) => (
+                    <TableRow key={req.id}>
+                    <TableCell className="font-medium truncate max-w-[120px]">{req.userEmail}</TableCell>
+                    <TableCell>৳{req.amount.toFixed(2)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{req.paymentMethod}</TableCell>
+                    <TableCell className="truncate max-w-[100px]">{req.transactionId}</TableCell>
+                    <TableCell className="hidden lg:table-cell whitespace-nowrap">{req.createdAt.toLocaleDateString()}</TableCell>
+                    <TableCell>
+                        <StatusBadge status={req.status} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        {req.status === 'Pending' && (
+                        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                            <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRequest(req, 'Approved')}
+                            disabled={!!processingId}
+                            >
+                            {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Approve'}
+                            </Button>
+                            <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRequest(req, 'Rejected')}
+                            disabled={!!processingId}
+                            >
+                            {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Reject'}
+                            </Button>
+                        </div>
+                        )}
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
