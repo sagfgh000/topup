@@ -5,14 +5,17 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
-import { orders as allOrders } from '@/lib/data';
+import { db } from '@/lib/firebase';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import OrderStatusBadge from './OrderStatusBadge';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const searchFormSchema = z.object({
   playerId: z.string().min(1, 'Please enter your Player ID.'),
@@ -21,16 +24,44 @@ const searchFormSchema = z.object({
 export default function OrderHistory() {
   const [userOrders, setUserOrders] = React.useState<Order[]>([]);
   const [searched, setSearched] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof searchFormSchema>>({
     resolver: zodResolver(searchFormSchema),
     defaultValues: { playerId: '' },
   });
 
-  function onSubmit(values: z.infer<typeof searchFormSchema>) {
-    const foundOrders = allOrders.filter(order => order.playerId === values.playerId);
-    setUserOrders(foundOrders);
+  async function onSubmit(values: z.infer<typeof searchFormSchema>) {
+    setLoading(true);
     setSearched(true);
+    try {
+      const q = query(
+        collection(db, 'orders'),
+        where('playerId', '==', values.playerId),
+        orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      const foundOrders: Order[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        foundOrders.push({
+          ...data,
+          id: doc.id,
+          createdAt: (data.createdAt as any).toDate(),
+        } as Order);
+      });
+      setUserOrders(foundOrders);
+    } catch (error) {
+        console.error("Error fetching orders:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not fetch order history.'
+        });
+    } finally {
+        setLoading(false);
+    }
   }
 
   return (
@@ -50,7 +81,9 @@ export default function OrderHistory() {
               </FormItem>
             )}
           />
-          <Button type="submit">Search</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : 'Search'}
+          </Button>
         </form>
       </Form>
 
@@ -62,7 +95,11 @@ export default function OrderHistory() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {userOrders.length > 0 ? (
+            {loading ? (
+                <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : userOrders.length > 0 ? (
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -76,9 +113,9 @@ export default function OrderHistory() {
                   <TableBody>
                     {userOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{order.product.name}</TableCell>
-                        <TableCell>{order.timestamp.toLocaleDateString()}</TableCell>
+                        <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                        <TableCell>{order.productName}</TableCell>
+                        <TableCell>{order.createdAt.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                           <OrderStatusBadge status={order.status} />
                         </TableCell>
