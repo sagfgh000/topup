@@ -46,6 +46,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
+
 const orderFormSchema = z.object({
   playerId: z.string().min(5, 'Player ID must be at least 5 characters.'),
 });
@@ -159,7 +160,7 @@ export default function HomePage() {
       <main className="flex-grow">
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src="/free-fire-banner.jpg"
+            src="https://placehold.co/1200x400.png"
             alt="Free Fire banner"
             fill
             style={{objectFit: 'cover'}}
@@ -260,7 +261,7 @@ export default function HomePage() {
             </div>
              <div className="hidden lg:block">
                 <Image
-                    src="/free-fire-diamonds.jpg"
+                    src="https://placehold.co/500x500.png"
                     alt="Free Fire diamonds in a chest"
                     width={500}
                     height={500}
@@ -292,7 +293,7 @@ export default function HomePage() {
             <AlertDialogTitle>Authentication Required</AlertDialogTitle>
             <AlertDialogDescription>
               You need to be logged in to place an order. Would you like to go to the login page?
-            </AlertDialogDescription>
+            </AlergDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -302,5 +303,4 @@ export default function HomePage() {
       </AlertDialog>
     </div>
   );
-
-    
+}
