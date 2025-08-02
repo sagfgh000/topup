@@ -9,8 +9,10 @@ import {
   orderBy,
   doc,
   writeBatch,
+  getDoc,
+  runTransaction,
 } from 'firebase/firestore';
-import type { TopUpRequest } from '@/lib/types';
+import type { TopUpRequest, Wallet } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -102,49 +104,40 @@ export default function AdminTopUpsTable() {
   ) => {
     if (!request.id) return;
     setProcessingId(request.id);
-    const batch = writeBatch(db);
-
-    const requestRef = doc(db, 'topUpRequests', request.id);
-    batch.update(requestRef, { status: newStatus });
-
-    if (newStatus === 'Approved') {
-      const walletRef = doc(db, 'wallets', request.userId);
-      // Firestore transactions require a read before a write,
-      // but for simplicity here we just increment.
-      // A Cloud Function would be better for robust transactions.
-      // We will read the wallet first to get the balance
-       try {
-        const walletDoc = await db.collection('wallets').doc(request.userId).get();
-        const currentBalance = walletDoc.exists ? walletDoc.data()?.balance || 0 : 0;
-        const newBalance = currentBalance + request.amount;
-        batch.set(walletRef, { balance: newBalance }, { merge: true });
-       } catch (error) {
-           console.error("Failed to read wallet, using increment which might be less safe.", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not update wallet balance safely.',
-            });
-           setProcessingId(null);
-           return;
-       }
-    }
 
     try {
-      await batch.commit();
-      toast({
-        title: `Request ${newStatus}`,
-        description: `Request from ${request.userEmail} has been ${newStatus.toLowerCase()}.`,
-      });
+        await runTransaction(db, async (transaction) => {
+            const requestRef = doc(db, 'topUpRequests', request.id!);
+            const walletRef = doc(db, 'wallets', request.userId);
+
+            // Get current wallet balance
+            const walletDoc = await transaction.get(walletRef);
+            const currentBalance = walletDoc.exists() ? (walletDoc.data() as Wallet).balance : 0;
+
+            // Update request status
+            transaction.update(requestRef, { status: newStatus });
+
+            // If approved, update wallet balance
+            if (newStatus === 'Approved') {
+                const newBalance = currentBalance + request.amount;
+                transaction.set(walletRef, { balance: newBalance }, { merge: true });
+            }
+        });
+        
+        toast({
+            title: `Request ${newStatus}`,
+            description: `Request from ${request.userEmail} has been ${newStatus.toLowerCase()}.`,
+        });
+
     } catch (error) {
-      console.error('Error processing request: ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to process the request.',
-      });
+        console.error('Error processing request: ', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to process the request. The user wallet might not exist or another error occurred.',
+        });
     } finally {
-      setProcessingId(null);
+        setProcessingId(null);
     }
   };
 
