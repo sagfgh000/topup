@@ -160,7 +160,7 @@ export default function HomePage() {
       <main className="flex-grow">
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src="/Garena-Free-Fire-Wallpaper-2-1024x576.jpg"
+            src="https://i.ibb.co/Ld1vV2j/Garena-Free-Fire-Wallpaper-2-1024x576.jpg"
             alt="Free Fire banner"
             fill
             style={{objectFit: 'cover'}}
