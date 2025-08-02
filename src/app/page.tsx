@@ -161,10 +161,11 @@ export default function HomePage() {
           <Image
             src="/free-fire-banner.jpg"
             alt="Free Fire banner"
-            layout="fill"
-            objectFit="cover"
+            fill
+            style={{objectFit: 'cover'}}
             className="brightness-50"
             data-ai-hint="gaming background"
+            priority
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
@@ -301,6 +302,5 @@ export default function HomePage() {
       </AlertDialog>
     </div>
   );
-}
 
     
