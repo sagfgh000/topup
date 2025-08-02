@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Users,
+  CircleDollarSign,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/admin/topups', icon: CircleDollarSign, label: 'Top-Ups' },
   { href: '/admin/products', icon: Package, label: 'Products' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
