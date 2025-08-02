@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -8,12 +9,13 @@ export type Product = {
 
 export type Order = {
   id: string;
+  userId: string;
+  userEmail: string;
   playerId: string;
-  product: Product;
-  paymentMethod: 'bKash' | 'Nagad' | 'Rocket';
-  transactionId: string;
+  productName: string;
+  productPrice: number;
   status: 'Pending' | 'Completed' | 'Failed';
-  timestamp: Date;
+  createdAt: Date;
 };
 
 export type Wallet = {

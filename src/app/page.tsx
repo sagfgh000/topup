@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,10 +6,11 @@ import Image from 'next/image';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Gem, CreditCard, ShieldCheck } from 'lucide-react';
+import { Gem, CreditCard, ShieldCheck, Loader2 } from 'lucide-react';
+import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 
 import { products } from '@/lib/data';
-import type { Product } from '@/lib/types';
+import type { Product, Order, Wallet } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -42,17 +44,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
 
 const orderFormSchema = z.object({
   playerId: z.string().min(5, 'Player ID must be at least 5 characters.'),
-  paymentMethod: z.enum(['bKash', 'Nagad', 'Rocket']),
-  transactionId: z.string().min(5, 'Transaction ID is required.'),
+  // We will use wallet balance, so payment method and transaction ID are no longer needed here.
+  // paymentMethod: z.enum(['bKash', 'Nagad', 'Rocket']),
+  // transactionId: z.string().min(5, 'Transaction ID is required.'),
 });
 
 export default function HomePage() {
   const [selectedPackage, setSelectedPackage] = React.useState<Product | null>(products[1]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
   const [isLoginPromptOpen, setIsLoginPromptOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
@@ -61,15 +66,13 @@ export default function HomePage() {
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
       playerId: '',
-      paymentMethod: 'bKash',
-      transactionId: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof orderFormSchema>) {
+  async function onSubmit(values: z.infer<typeof orderFormSchema>) {
     if (!user) {
-        setIsLoginPromptOpen(true);
-        return;
+      setIsLoginPromptOpen(true);
+      return;
     }
     if (!selectedPackage) {
       toast({
@@ -79,9 +82,52 @@ export default function HomePage() {
       });
       return;
     }
-    console.log({ ...values, package: selectedPackage });
-    setIsSuccessModalOpen(true);
-    form.reset();
+
+    setIsSubmitting(true);
+    try {
+      const walletRef = doc(db, 'wallets', user.uid);
+      const orderCost = selectedPackage.price;
+
+      await runTransaction(db, async (transaction) => {
+        const walletDoc = await transaction.get(walletRef);
+        const currentBalance = walletDoc.exists() ? (walletDoc.data() as Wallet).balance : 0;
+
+        if (currentBalance < orderCost) {
+          throw new Error('Insufficient wallet balance. Please add money to your wallet.');
+        }
+
+        const newBalance = currentBalance - orderCost;
+        transaction.set(walletRef, { balance: newBalance }, { merge: true });
+
+        const newOrder: Omit<Order, 'id' | 'timestamp'> = {
+          userId: user.uid,
+          userEmail: user.email || 'N/A',
+          playerId: values.playerId,
+          productName: selectedPackage.name,
+          productPrice: selectedPackage.price,
+          status: 'Pending',
+        };
+
+        const ordersCollection = collection(db, 'orders');
+        await addDoc(ordersCollection, {
+          ...newOrder,
+          createdAt: serverTimestamp(),
+        });
+      });
+      
+      setIsSuccessModalOpen(true);
+      form.reset();
+
+    } catch (error: any) {
+      console.error("Order submission failed: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Order Failed',
+        description: error.message || 'There was a problem submitting your order.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -160,44 +206,21 @@ export default function HomePage() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Method</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a payment method" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="bKash">bKash</SelectItem>
-                              <SelectItem value="Nagad">Nagad</SelectItem>
-                              <SelectItem value="Rocket">Rocket</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
+                    <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg border">
+                      The cost for <strong>{selectedPackage?.name}</strong> ({selectedPackage?.price} Taka) will be deducted from your wallet balance.
+                    </div>
+                    <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage || isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="mr-2 h-5 w-5" />
+                          Submit Order
+                        </>
                       )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="transactionId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Transaction ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your payment Transaction ID" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full font-bold text-lg py-6" disabled={!selectedPackage}>
-                      <ShieldCheck className="mr-2 h-5 w-5" />
-                      Submit Order
                     </Button>
                   </form>
                 </Form>
@@ -212,7 +235,7 @@ export default function HomePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl text-center">Order Submitted Successfully!</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Your order for <strong>{selectedPackage?.name}</strong> has been received. Please wait for confirmation. You can track your order status on the 'Track Order' page.
+              Your order for <strong>{selectedPackage?.name}</strong> has been received and the amount has been deducted from your wallet. Please wait for confirmation. You can track your order status on the 'Track Order' page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
