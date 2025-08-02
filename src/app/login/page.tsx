@@ -73,7 +73,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <Link href="/" className="flex justify-center items-center gap-2 mb-4">
             <Gem className="h-8 w-8 text-primary" />
-            <CardTitle className="font-headline text-3xl">Diamond Depot</CardTitle>
+            <CardTitle className="font-headline text-3xl">Dimond Topup</CardTitle>
           </Link>
           <CardDescription>Welcome back! Please sign in.</CardDescription>
         </CardHeader>

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Diamond Depot',
+  title: 'Dimond Topup',
   description: 'Top-up website for Free Fire diamonds',
 };
 
