@@ -1,48 +1,45 @@
 'use client';
 
+import { useState } from 'react';
 import { Gem } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Form, FormField, FormControl, FormItem, FormMessage } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import React from 'react';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 
-const adminLoginFormSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1, 'Password is required.'),
+const loginFormSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
-
-export default function AdminLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof adminLoginFormSchema>>({
-    resolver: zodResolver(adminLoginFormSchema),
-    defaultValues: {
-      email: "admin@example.com",
-      password: "password",
-    },
+  const form = useForm<z.infer<typeof loginFormSchema>>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: '', password: '' },
   });
 
-  const handleLogin = async (values: z.infer<typeof adminLoginFormSchema>) => {
+  const handleLogin = async (values: z.infer<typeof loginFormSchema>) => {
     setLoading(true);
     try {
       await login(values.email, values.password);
-      // In a real app, you would also check if the user has admin privileges
-      router.push('/admin/dashboard');
-    } catch(e) {
-      console.error(e);
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Failed to login', error);
+      // Error is handled by toast in AuthContext
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -50,11 +47,11 @@ export default function AdminLoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-muted/40">
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
-          <div className="flex justify-center items-center gap-2 mb-4">
-             <Gem className="h-8 w-8 text-primary" />
-             <CardTitle className="font-headline text-3xl">Diamond Depot</CardTitle>
-          </div>
-          <CardDescription>Admin Panel Login</CardDescription>
+          <Link href="/" className="flex justify-center items-center gap-2 mb-4">
+            <Gem className="h-8 w-8 text-primary" />
+            <CardTitle className="font-headline text-3xl">Diamond Depot</CardTitle>
+          </Link>
+          <CardDescription>Welcome back! Please sign in.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -64,9 +61,9 @@ export default function AdminLoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="email">Email</Label>
+                    <Label>Email</Label>
                     <FormControl>
-                      <Input id="email" type="email" placeholder="admin@example.com" {...field} />
+                      <Input type="email" placeholder="you@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -77,9 +74,9 @@ export default function AdminLoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="password">Password</Label>
+                     <Label>Password</Label>
                     <FormControl>
-                      <Input id="password" type="password" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -91,8 +88,9 @@ export default function AdminLoginPage() {
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            <Link href="/" className="underline text-muted-foreground hover:text-primary">
-              Back to main site
+            Don't have an account?{' '}
+            <Link href="/signup" className="underline text-primary hover:text-primary/80">
+              Sign up
             </Link>
           </div>
         </CardContent>

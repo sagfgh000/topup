@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Gem,
   LayoutDashboard,
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -27,6 +28,25 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
+  
+  React.useEffect(() => {
+    if (!loading && !user) {
+        router.push('/admin/login');
+    }
+    // In a real app, you would also check for admin role here
+  }, [user, loading, router]);
+
+
+  if (loading || !user) {
+      return <div className="flex h-screen items-center justify-center">Loading admin panel...</div>
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/admin/login');
+  }
 
   const sidebarNav = (
     <nav className="grid gap-2 text-lg font-medium">
@@ -78,13 +98,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link
-                href="/admin/login"
+              <button
+                onClick={handleLogout}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
-              </Link>
+              </button>
             </TooltipTrigger>
             <TooltipContent side="right">Logout</TooltipContent>
           </Tooltip>
@@ -127,6 +147,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {item.label}
                   </Link>
                 ))}
+                 <button onClick={handleLogout} className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+                    <LogOut className="h-5 w-5" />
+                    Logout
+                 </button>
               </nav>
             </SheetContent>
           </Sheet>
