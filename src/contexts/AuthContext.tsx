@@ -14,6 +14,8 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +26,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,11 +52,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
   };
+  
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      return await signInWithPopup(auth, provider);
+    } catch (error: any) {
+       toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
+       throw error;
+    }
+  }
 
   const signup = async (email: string, pass: string) => {
     try {
       return await createUserWithEmailAndPassword(auth, email, pass);
-    } catch (error: any) {
+    } catch (error: any)
+{
       toast({ variant: 'destructive', title: 'Signup Failed', description: error.message });
       throw error;
     }
@@ -74,6 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     signup,
     logout,
+    loginWithGoogle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
