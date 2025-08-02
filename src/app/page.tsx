@@ -132,10 +132,8 @@ export default function HomePage() {
         };
 
         const ordersCollection = collection(db, 'orders');
-        await addDoc(ordersCollection, {
-          ...newOrder,
-          createdAt: serverTimestamp(),
-        });
+        const orderRef = doc(collection(db, 'orders')); // Create a new ref for the order
+        transaction.set(orderRef, { ...newOrder, createdAt: serverTimestamp() });
       });
       
       setIsSuccessModalOpen(true);
@@ -261,7 +259,7 @@ export default function HomePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl text-center">Order Submitted Successfully!</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Your order for <strong>{selectedPackage?.name}</strong> has been received and the amount has been deducted from your wallet. Please wait for confirmation. You can track your order status on the 'Track Order' page.
+              Your order for <strong>{selectedPackage?.name}</strong> has been received and the amount has been deducted from your wallet. Please wait for confirmation. You can track your order status on the 'Order History' page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

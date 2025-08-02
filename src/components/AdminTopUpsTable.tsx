@@ -13,6 +13,7 @@ import {
   getDoc,
   runTransaction,
   updateDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import type { TopUpRequest, Wallet } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -110,14 +111,21 @@ export default function AdminTopUpsTable() {
     const requestRef = doc(db, 'topUpRequests', request.id);
 
     try {
-      if (newStatus === 'Approved') {
-        // Use a transaction to ensure atomicity: update balance AND request status
         await runTransaction(db, async (transaction) => {
-            const walletRef = doc(db, 'wallets', request.userId);
-            const walletDoc = await transaction.get(walletRef);
+            const requestDoc = await transaction.get(requestRef);
+            if (!requestDoc.exists()) {
+                throw new Error("Request does not exist anymore.");
+            }
             
-            // Only add funds if the request has not been approved before.
-            if (request.status !== 'Approved') {
+            const currentRequest = requestDoc.data() as TopUpRequest;
+            if (currentRequest.status !== 'Pending') {
+                throw new Error(`This request has already been ${currentRequest.status.toLowerCase()}.`);
+            }
+
+            if (newStatus === 'Approved') {
+                const walletRef = doc(db, 'wallets', request.userId);
+                const walletDoc = await transaction.get(walletRef);
+                
                 if (!walletDoc.exists()) {
                     // If wallet doesn't exist, create it with the top-up amount
                     transaction.set(walletRef, { balance: request.amount });
@@ -127,27 +135,21 @@ export default function AdminTopUpsTable() {
                     transaction.update(walletRef, { balance: newBalance });
                 }
             }
-            
-            // Finally, update the request status
+            // For both 'Approved' and 'Rejected', update the request status
             transaction.update(requestRef, { status: newStatus });
         });
-      } else {
-        // If rejecting, just update the status
-        // No need to touch the wallet if request is rejected
-        await updateDoc(requestRef, { status: newStatus });
-      }
         
       toast({
           title: `Request ${newStatus}`,
           description: `Request from ${request.userEmail} has been ${newStatus.toLowerCase()}.`,
       });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error processing request: ', error);
         toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'Failed to process the request. The user wallet might not exist or another error occurred.',
+            description: error.message || 'Failed to process the request.',
         });
     } finally {
         setProcessingId(null);
