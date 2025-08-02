@@ -160,12 +160,11 @@ export default function HomePage() {
       <main className="flex-grow">
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src="https://placehold.co/1200x400.png"
+            src="/Garena-Free-Fire-Wallpaper-2-1024x576.jpg"
             alt="Free Fire banner"
             fill
             style={{objectFit: 'cover'}}
             className="brightness-50"
-            data-ai-hint="gaming background"
             priority
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
