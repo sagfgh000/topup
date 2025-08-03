@@ -81,6 +81,10 @@ export default function RecentTransactions() {
         });
         combinedLoaded.topups = true;
         combineAndSetTransactions();
+    }, (error) => {
+      console.error("Error fetching top-ups:", error);
+      combinedLoaded.topups = true;
+      combineAndSetTransactions();
     });
 
     const unsubscribeOrders = onSnapshot(orderQuery, (snapshot) => {
@@ -91,6 +95,10 @@ export default function RecentTransactions() {
         });
         combinedLoaded.orders = true;
         combineAndSetTransactions();
+    }, (error) => {
+      console.error("Error fetching orders:", error);
+      combinedLoaded.orders = true;
+      combineAndSetTransactions();
     });
 
     return () => {
