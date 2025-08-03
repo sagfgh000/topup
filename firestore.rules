@@ -1,71 +1,62 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check if the user is an admin.
-    // For this to work, you must create a collection named 'admins' and add a document 
-    // where the document ID is the UID of the admin user.
+
+    // Helper function to check for Admin role.
+    // In this app, the admin is identified by a specific email address.
     function isAdmin() {
-      // Check if the user's UID exists in the 'admins' collection.
-      // IMPORTANT: The admin email 'kymt83091@gmail.com' is checked on the client-side
-      // in the layout, but for Firestore rules, we must rely on a server-side check.
-      // You need to manually add your UID to the 'admins' collection in Firestore.
-      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+    }
+
+    // Products: Anyone can read the products list. Only admins can create, update, or delete them.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Wallets:
-    // - A user can create their own wallet for the first time.
-    // - A user can read their own wallet.
-    // - A user cannot update their own wallet directly (this is handled by server-side logic/admin actions).
-    // - Admins can read and write to any wallet.
+    // - Users can create their own wallet for the first time.
+    // - Users can read their own wallet.
+    // - Admins can read any wallet.
+    // - Wallet balance updates are handled by server-side logic (transactions from orders/topups), not direct user writes.
+    //   Admins can update balance directly.
     match /wallets/{userId} {
       allow read: if request.auth.uid == userId || isAdmin();
-      allow create: if request.auth.uid == userId; // Allow user to create their own wallet
-      allow update: if isAdmin(); // Only admins can update balance
+      allow create: if request.auth.uid == userId;
+      allow update: if isAdmin();
     }
-    
+
     // Orders:
-    // - Users can create their own orders if they are logged in.
-    // - Users can read their own orders.
+    // - Users can create their own orders.
+    // - Users can read orders if their UID matches or if they provide the correct Player ID.
     // - Admins can read and update any order.
     match /orders/{orderId} {
       allow read: if request.auth.uid == resource.data.userId || isAdmin();
       allow create: if request.auth.uid == request.resource.data.userId;
       allow update: if isAdmin();
+      
+      // Allow unauthenticated users to query orders by their `playerId` for the tracking page
+      allow list: if request.query.get('where')[0][0] == 'playerId' || isAdmin();
     }
-    
-    // TopUpRequests:
+
+    // Top-Up Requests:
     // - Users can create their own top-up requests.
-    // - Users can read their own top-up requests.
-    // - Admins can read and update any request.
+    // - Admins can read and update all requests.
+    // - Users can see their own top-up requests.
     match /topUpRequests/{requestId} {
-       allow read: if request.auth.uid == resource.data.userId || isAdmin();
-       allow create: if request.auth.uid == request.resource.data.userId;
-       allow update: if isAdmin();
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      allow update: if isAdmin();
+      allow list: if isAdmin();
     }
     
-    // Products:
-    // - Anyone can read the product list.
-    // - Only admins can create, update, or delete products.
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    // Settings (e.g., promo banner)
-    // - Anyone can read the settings.
+    // Settings: 
+    // - Anyone can read the settings (for the promo banner).
     // - Only admins can change the settings.
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    // Admins collection:
-    // Only other admins should be able to see who is an admin.
-    match /admins/{adminId} {
-      allow read, write: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
     }
   }
 }
