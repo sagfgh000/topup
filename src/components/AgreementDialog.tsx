@@ -55,6 +55,9 @@ export function AgreementDialog({ onAgree, onLogout }: AgreementDialogProps) {
                         <li>
                             <strong>Server Region:</strong> This service is available only for the <strong>Bangladesh</strong> server. Orders for other servers will not be processed.
                         </li>
+                        <li>
+                            <strong>Non-Refundable Wallet:</strong> Money added to the wallet is for purchasing products on this site only and is non-refundable to any personal bank or mobile money account.
+                        </li>
                    </ul>
                 </AlertDescription>
             </Alert>
@@ -71,6 +74,9 @@ export function AgreementDialog({ onAgree, onLogout }: AgreementDialogProps) {
                         </li>
                         <li>
                             <strong>সার্ভার অঞ্চল:</strong> এই পরিষেবাটি শুধুমাত্র <strong>বাংলাদেশ</strong> সার্ভারের জন্য উপলব্ধ। অন্য সার্ভারের জন্য অর্ডার প্রক্রিয়া করা হবে না।
+                        </li>
+                        <li>
+                            <strong>অফেরতযোগ্য ওয়ালেট:</strong> ওয়ালেটে যোগ করা টাকা শুধুমাত্র এই সাইট থেকে পণ্য কেনার জন্য এবং কোনো ব্যক্তিগত ব্যাংক বা মোবাইল মানি অ্যাকাউন্টে ফেরতযোগ্য নয়।
                         </li>
                    </ul>
                 </AlertDescription>

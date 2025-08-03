@@ -107,6 +107,7 @@ export default function DashboardPage() {
                        </>
                     )}
                     <Button className="mt-4" size="sm" onClick={() => setIsAddMoneyOpen(true)}>Add Money</Button>
+                    <p className="text-xs text-muted-foreground mt-2">ওয়ালেটের টাকা অফেরতযোগ্য।</p>
                 </CardContent>
             </Card>
 
