@@ -11,9 +11,10 @@ import {
   onSnapshot,
   orderBy,
   Timestamp,
+  limit,
 } from 'firebase/firestore';
 import type { Order, TopUpRequest } from '@/lib/types';
-import { Loader2, ArrowDownLeft, ArrowUpRight, Hourglass, XCircle, CheckCircle } from 'lucide-react';
+import { Loader2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -26,24 +27,13 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 type CombinedTransaction = (
   | ({ type: 'Order' } & Order)
   | ({ type: 'TopUp' } & TopUpRequest)
 ) & { date: Date };
 
-const TopUpStatusIcon = ({ status }: { status: TopUpRequest['status'] }) => {
-    switch (status) {
-        case 'Approved':
-            return <CheckCircle className="mr-1 h-3 w-3 text-green-600" />;
-        case 'Rejected':
-            return <XCircle className="mr-1 h-3 w-3 text-red-600" />;
-        case 'Pending':
-            return <Hourglass className="mr-1 h-3 w-3 text-yellow-600" />;
-        default:
-            return <ArrowDownLeft className="mr-1 h-3 w-3" />;
-    }
-}
 
 export default function TransactionHistoryClient() {
   const { user, loading: authLoading } = useAuth();
@@ -63,13 +53,15 @@ export default function TransactionHistoryClient() {
     const topUpQuery = query(
       collection(db, 'topUpRequests'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(50)
     );
 
     const orderQuery = query(
       collection(db, 'orders'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(50)
     );
     
     let orders: Order[] = [];
@@ -82,7 +74,7 @@ export default function TransactionHistoryClient() {
         if (!combinedLoaded.orders || !combinedLoaded.topups) return;
 
         const combined = [
-            ...topUps.map(t => ({ ...t, type: 'TopUp' as const, date: t.createdAt })),
+            ...topUps.map(t => ({ ...t, type: 'TopUp' as const, date: t.createdAt, id: t.id || t.transactionId })),
             ...orders.map(o => ({ ...o, type: 'Order' as const, date: o.createdAt }))
         ];
         combined.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -159,12 +151,12 @@ export default function TransactionHistoryClient() {
             <TableRow key={`${tx.type}-${tx.id}`} className={cn(tx.type === 'TopUp' && tx.status === 'Pending' && 'opacity-60')}>
               <TableCell>
                 {tx.type === 'TopUp' ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                    <TopUpStatusIcon status={tx.status} />
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
+                    <ArrowDownLeft className="mr-1 h-3 w-3" />
                     Top-Up
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">
+                  <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
                     <ArrowUpRight className="mr-1 h-3 w-3" />
                     Order
                   </Badge>
@@ -176,19 +168,12 @@ export default function TransactionHistoryClient() {
               </TableCell>
               <TableCell>{tx.date.toLocaleString()}</TableCell>
                <TableCell>
-                <Badge variant={
-                    tx.type === 'Order' ? 
-                        (tx.status === 'Completed' ? 'default' : tx.status === 'Failed' ? 'destructive' : 'secondary') :
-                    tx.type === 'TopUp' ?
-                        (tx.status === 'Approved' ? 'default' : tx.status === 'Rejected' ? 'destructive' : 'secondary') : 'secondary'
-                }>
-                    {tx.status}
-                </Badge>
+                 <OrderStatusBadge status={tx.status} />
                </TableCell>
               <TableCell className={cn(
                 "text-right font-bold",
                  tx.type === 'TopUp' && tx.status === 'Approved' ? 'text-green-600' : 
-                 tx.type === 'Order' ? 'text-red-600' : 'text-muted-foreground'
+                 tx.type === 'Order' && tx.status === 'Completed' ? 'text-red-600' : 'text-muted-foreground'
               )}>
                 {tx.type === 'TopUp' ? '+' : '-'}৳{tx.type === 'TopUp' ? tx.amount.toFixed(2) : tx.productPrice.toFixed(2)}
               </TableCell>

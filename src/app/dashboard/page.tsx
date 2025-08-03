@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Gem, History, LogOut, Loader2 } from 'lucide-react';
+import { DollarSign, Gem, History, LogOut, Loader2, ListCollapse } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -56,7 +57,7 @@ export default function DashboardPage() {
     if (user) {
         const walletRef = doc(db, 'wallets', user.uid);
         try {
-            await setDoc(walletRef, { hasAcceptedAgreement: true }, { merge: true });
+            await setDoc(walletRef, { hasAcceptedAgreement: true, balance: 0 }, { merge: true });
             setShowAgreement(false);
         } catch (e) {
             console.error("Failed to save agreement", e);
@@ -126,7 +127,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="grid gap-2 pt-4">
                     <Button variant="outline" asChild><Link href="/orders">Order History</Link></Button>
-                    <Button variant="outline" asChild><Link href="/transactions">Transaction History</Link></Button>
+                    <Button variant="outline" asChild><Link href="/transactions"><ListCollapse className="mr-2 h-4 w-4" />Transaction History</Link></Button>
                     <Button variant="destructive" onClick={logout}><LogOut className="mr-2 h-4 w-4"/>Logout</Button>
                 </CardContent>
             </Card>
