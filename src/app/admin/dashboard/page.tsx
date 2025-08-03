@@ -1,7 +1,7 @@
-import AdminOrdersTable from "@/components/AdminOrdersTable";
+import AdminDashboard from "@/components/AdminDashboard";
 
 export default function AdminDashboardPage() {
     return (
-        <AdminOrdersTable />
+        <AdminDashboard />
     );
 }
