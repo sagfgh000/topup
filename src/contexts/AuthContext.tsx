@@ -16,6 +16,7 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,7 @@ interface AuthContextType {
   signup: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<any>;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const handleAuthError = (error: any, context: 'Login' | 'Signup' | 'Google Login') => {
+  const handleAuthError = (error: any, context: 'Login' | 'Signup' | 'Google Login' | 'Password Reset') => {
     let description = 'An unexpected error occurred. Please try again.';
     
     switch (error.code) {
@@ -52,7 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description = 'Invalid credentials. Please check your email and password.';
         break;
       case 'auth/user-not-found':
-        description = 'No account found with this email. Please sign up first.';
+      case 'auth/invalid-email':
+        description = 'No account found with this email address.';
         break;
       case 'auth/wrong-password':
         description = 'Incorrect password. Please try again.';
@@ -64,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description = 'The password is too weak. Please use at least 6 characters.';
         break;
        case 'auth/popup-closed-by-user':
-        description = 'Login process was cancelled.';
+        description = 'The process was cancelled.';
         break;
       default:
         description = error.message; // Fallback for other errors
@@ -115,6 +118,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast({ variant: 'destructive', title: 'Logout Failed', description: error.message });
     }
   };
+  
+  const sendPasswordReset = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      handleAuthError(error, 'Password Reset');
+      throw error;
+    }
+  };
 
   const value = {
     user,
@@ -123,6 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signup,
     logout,
     loginWithGoogle,
+    sendPasswordReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
