@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -142,51 +143,53 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                     <Label>Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Password</Label>
+                      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                          <Button type="button" variant="link" className="h-auto p-0 text-xs">
+                            Forgot Password?
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reset Your Password</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Enter your email address below, and we'll send you a link to reset your password.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <Form {...forgotPasswordForm}>
+                            <form onSubmit={forgotPasswordForm.handleSubmit(handlePasswordReset)}>
+                              <FormField
+                                control={forgotPasswordForm.control}
+                                name="email"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <Label>Email</Label>
+                                    <FormControl>
+                                      <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input type="email" placeholder="you@example.com" className="pl-9" {...field} />
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                                <Button type="submit" disabled={resetLoading}>
+                                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                                </Button>
+                              </AlertDialogFooter>
+                            </form>
+                          </Form>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
-                     <div className="text-right">
-                        <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-                            <AlertDialogTrigger asChild>
-                                <Button type="button" variant="link" className="h-auto p-0 text-xs">Forgot Password?</Button>
-                            </AlertDialogTrigger>
-                             <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Reset Your Password</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Enter your email address below, and we'll send you a link to reset your password.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <Form {...forgotPasswordForm}>
-                                    <form onSubmit={forgotPasswordForm.handleSubmit(handlePasswordReset)}>
-                                        <FormField
-                                            control={forgotPasswordForm.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                            <FormItem>
-                                                <Label>Email</Label>
-                                                <FormControl>
-                                                    <div className="relative">
-                                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                        <Input type="email" placeholder="you@example.com" className="pl-9" {...field} />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                            )}
-                                        />
-                                        <AlertDialogFooter className="mt-4">
-                                            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-                                            <Button type="submit" disabled={resetLoading}>
-                                                {resetLoading ? 'Sending...' : 'Send Reset Link'}
-                                            </Button>
-                                        </AlertDialogFooter>
-                                    </form>
-                                </Form>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                     </div>
                     <FormMessage />
                   </FormItem>
                 )}
