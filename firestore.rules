@@ -1,41 +1,49 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
+  
+    // Helper function to check if the user is an admin.
+    // For this to work, you must create a collection named 'admins' and add a document 
+    // where the document ID is the UID of the admin user.
     function isAdmin() {
-      // Ensure you replace this with your actual admin email.
-      return request.auth.token.email == 'kymt83091@gmail.com' && request.auth.token.email_verified;
+      // Check if the user's UID exists in the 'admins' collection.
+      // IMPORTANT: The admin email 'kymt83091@gmail.com' is checked on the client-side
+      // in the layout, but for Firestore rules, we must rely on a server-side check.
+      // You need to manually add your UID to the 'admins' collection in Firestore.
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Wallets:
-    // - Users can read and update their OWN wallet.
-    // - Admins can list/read all wallets for the customer table and update any wallet.
+    // - A user can create their own wallet for the first time.
+    // - A user can read their own wallet.
+    // - A user cannot update their own wallet directly (this is handled by server-side logic/admin actions).
+    // - Admins can read and write to any wallet.
     match /wallets/{userId} {
-      allow read, update: if isOwner(userId);
-      allow get, list, update: if isAdmin();
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId; // Allow user to create their own wallet
+      allow update: if isAdmin(); // Only admins can update balance
     }
-
-    // Orders: 
-    // - Users can create and read their OWN orders.
-    // - Admins can read/list/update all orders.
+    
+    // Orders:
+    // - Users can create their own orders if they are logged in.
+    // - Users can read their own orders.
+    // - Admins can read and update any order.
     match /orders/{orderId} {
-      allow create: if isOwner(request.resource.data.userId);
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-      allow list, update: if isAdmin();
+      allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow update: if isAdmin();
     }
-
-    // topUpRequests:
-    // - Users can create their own requests.
-    // - Admins can read/list/update all requests.
+    
+    // TopUpRequests:
+    // - Users can create their own top-up requests.
+    // - Users can read their own top-up requests.
+    // - Admins can read and update any request.
     match /topUpRequests/{requestId} {
-      allow create: if isOwner(request.resource.data.userId);
-      allow list, get, update: if isAdmin();
+       allow read: if request.auth.uid == resource.data.userId || isAdmin();
+       allow create: if request.auth.uid == request.resource.data.userId;
+       allow update: if isAdmin();
     }
     
     // Products:
@@ -46,12 +54,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Settings (like promo banner):
+    // Settings (e.g., promo banner)
     // - Anyone can read the settings.
-    // - Only admins can write/change settings.
+    // - Only admins can change the settings.
     match /settings/{settingId} {
-        allow read: if true;
-        allow write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Admins collection:
+    // Only other admins should be able to see who is an admin.
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
     }
   }
 }
