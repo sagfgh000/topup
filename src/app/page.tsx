@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Gem, CreditCard, ShieldCheck, Loader2 } from 'lucide-react';
+import { Gem, CreditCard, ShieldCheck, Loader2, Info } from 'lucide-react';
 import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 import type { Product, Order, Wallet } from '@/lib/types';
@@ -44,6 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const orderFormSchema = z.object({
@@ -216,6 +217,13 @@ export default function HomePage() {
                 <CardContent>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <Alert variant="destructive" className="bg-blue-500/10 border-blue-500/20 text-blue-300">
+                        <Info className="h-5 w-5 text-blue-400" />
+                        <AlertTitle className="font-bold text-blue-400">অর্ডার করার আগে পড়ুন</AlertTitle>
+                        <AlertDescription>
+                          আপনার Free Fire Player ID (UID) সাবধানে দিন। ভুল UID দিলে এবং ডায়মন্ড অন্য একাউন্টে গেলে, কর্তৃপক্ষ দায়ী থাকবে না।
+                        </AlertDescription>
+                      </Alert>
                       <FormField
                         control={form.control}
                         name="playerId"
