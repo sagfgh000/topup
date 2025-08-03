@@ -47,7 +47,7 @@ const addMoneySchema = z.object({
 
 const paymentAccounts = {
     bKash: '01845938953',
-    Nagad: '01812345678',
+    Nagad: '01845938953',
 }
 
 type AddMoneyDialogProps = {
