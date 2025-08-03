@@ -54,7 +54,7 @@ export default function AdminCustomersTable() {
           const wallet = doc.data() as Wallet;
           // We need user email, which isn't stored on the wallet. We'll get it from orders/topups.
           customerDataMap.set(doc.id, {
-              email: '', // will be populated later
+              email: 'N/A', // will be populated later
               totalSpent: 0,
               orderCount: 0,
               balance: wallet.balance || 0,
@@ -89,10 +89,11 @@ export default function AdminCustomersTable() {
           const topup = doc.data();
           const { userId, userEmail } = topup;
           if (!customerDataMap.has(userId)) {
+              // This case can happen if a user signs up via Google but hasn't done anything else
               customerDataMap.set(userId, { email: userEmail, totalSpent: 0, orderCount: 0, balance: 0 });
           } else {
               const data = customerDataMap.get(userId)!;
-              if (userEmail) data.email = userEmail;
+              if (userEmail && data.email === 'N/A') data.email = userEmail;
           }
       });
       
