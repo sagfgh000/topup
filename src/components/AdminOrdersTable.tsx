@@ -50,10 +50,12 @@ export default function AdminOrdersTable() {
         const ordersData: Order[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            // Ensure createdAt exists and is a Timestamp before converting
+            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
             ordersData.push({ 
                 id: doc.id,
                 ...data,
-                createdAt: (data.createdAt as Timestamp).toDate(),
+                createdAt: createdAtDate,
             } as Order);
         });
         setOrders(ordersData);
