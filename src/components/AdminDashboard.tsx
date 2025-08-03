@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -25,7 +24,14 @@ export default function AdminDashboard() {
         const ordersQuery = query(collection(db, 'orders'));
 
         const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
-            const orders: Order[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order));
+            const orders: Order[] = snapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return { 
+                    ...data, 
+                    id: doc.id,
+                    createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+                } as Order
+            });
             
             const totalRevenue = orders
                 .filter(o => o.status === 'Completed')
@@ -49,7 +55,7 @@ export default function AdminDashboard() {
                 
                 const dailyRevenue = orders
                     .filter(o => {
-                         const orderDate = (o.createdAt as any).toDate();
+                         const orderDate = o.createdAt;
                          return o.status === 'Completed' && orderDate >= dayStart && orderDate <= dayEnd;
                     })
                     .reduce((sum, o) => sum + o.productPrice, 0);

@@ -8,7 +8,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, Timestamp, runTransaction } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, Timestamp, runTransaction, limit } from 'firebase/firestore';
 
 import type { Order, Wallet } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export default function AdminOrdersTable() {
   const { toast } = useToast();
 
   React.useEffect(() => {
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const ordersData: Order[] = [];
         querySnapshot.forEach((doc) => {
