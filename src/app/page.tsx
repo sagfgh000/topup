@@ -189,7 +189,7 @@ export default function HomePage() {
         >
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
-              Dimond Topup
+              Rmr Topup
             </h1>
             <p className="mt-2 text-lg md:text-xl max-w-2xl drop-shadow-md">
               Instant Top-Ups for Free Fire. Get your diamonds quickly and securely.
