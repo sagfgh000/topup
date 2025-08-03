@@ -175,7 +175,8 @@ export default function HomePage() {
   }
 
   const promoAlertVariant = promoBanner?.variant === 'info' ? 'default' : promoBanner?.variant;
-  const promoAlertClass = promoBanner?.variant === 'info' ? 'bg-blue-500/10 border-blue-500/20 text-blue-300 [&>svg]:text-blue-400' : '';
+  const promoAlertClass = promoBanner?.variant === 'info' ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/30 text-blue-200' : '';
+  const promoIconClass = promoBanner?.variant === 'info' ? 'text-blue-300 animate-pulse' : 'animate-pulse';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -198,7 +199,7 @@ export default function HomePage() {
         <section className="container mx-auto px-4 py-8 md:py-12">
             {promoBanner?.isEnabled && promoBanner.text && (
                 <Alert variant={promoAlertVariant} className={cn('mb-8 animate-in fade-in-50', promoAlertClass)}>
-                    <Megaphone className="h-5 w-5" />
+                    <Megaphone className={cn("h-5 w-5", promoIconClass)} />
                     <AlertTitle className="font-bold">Announcement</AlertTitle>
                     <AlertDescription>{promoBanner.text}</AlertDescription>
                 </Alert>
