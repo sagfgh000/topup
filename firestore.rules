@@ -1,59 +1,54 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isAdmin() {
-      // The admin's email is hardcoded. All security logic for the admin role
-      // is based on this specific email address.
       return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
     }
 
+    // Products can be read by anyone, but only written by an admin
     match /products/{productId} {
-      // Anyone can view products (e.g., on the homepage).
-      allow read: if true;
-      // Only the admin can create, update, or delete products.
+      allow read;
       allow write: if isAdmin();
+    }
+
+    // Wallets:
+    // Users can create their own wallet document for the first time.
+    // Users can update their own wallet (e.g. for placing an order).
+    // Admin can read/write any wallet.
+    match /wallets/{userId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId;
+      allow update, set: if request.auth.uid == userId || isAdmin(); // set is needed for {merge: true}
     }
     
-    match /settings/{settingId} {
-       // Anyone can view settings (e.g., for the promo banner).
-      allow read: if true;
-      // Only the admin can change settings.
+    // Settings can be read by anyone, but only written by an admin
+    match /settings/{docId} {
+      allow read;
       allow write: if isAdmin();
     }
 
-    match /wallets/{userId} {
-      // A user can read their own wallet. An admin can read any wallet.
-      allow read: if request.auth.uid == userId || isAdmin();
-      
-      // A user can create their own wallet document (e.g., when agreeing to terms).
-      // They cannot set an initial balance; the code handles this.
-      allow create: if request.auth.uid == userId;
-
-      // A user can update their own wallet (e.g., when an order deducts balance).
-      // The admin can update any wallet (e.g., to approve a top-up).
-      allow write: if request.auth.uid == userId || isAdmin();
-    }
-
-    match /orders/{orderId} {
-      // A user can only create an order for themselves.
+    // Top-Up Requests:
+    // Users can create their own requests.
+    // Users can view their own requests.
+    // Admin can read/write all requests.
+    match /topUpRequests/{requestId} {
+      allow read: if request.auth.uid == request.resource.data.userId || isAdmin();
       allow create: if request.auth.uid == request.resource.data.userId;
-      
-      // A user can read their own orders. An admin can read any order.
-      allow read: if request.auth.uid == resource.data.userId || isAdmin();
-      
-      // Only an admin can update an order (e.g., to change its status).
       allow update: if isAdmin();
     }
 
-    match /topUpRequests/{requestId} {
-      // An admin can read and update any top-up request.
-      allow read, update: if isAdmin();
-      
-      // A user can only create a top-up request for themselves.
-      allow create: if request.auth.uid == request.resource.data.userId;
+    // Orders:
+    // Anyone can read orders (for public tracking).
+    // Users can only create orders for themselves with valid data.
+    // Admin can update any order.
+    match /orders/{orderId} {
+      allow read;
+      allow create: if request.auth.uid == request.resource.data.userId
+                      && request.resource.data.status == 'Pending'
+                      && request.resource.data.userEmail == request.auth.token.email;
+      allow update: if isAdmin();
     }
   }
 }

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase';
 import type { Order } from '@/lib/types';
@@ -35,6 +35,7 @@ export default function OrderHistory() {
   async function onSubmit(values: z.infer<typeof searchFormSchema>) {
     setLoading(true);
     setSearched(true);
+    setUserOrders([]);
     try {
       const q = query(
         collection(db, 'orders'),
@@ -48,7 +49,7 @@ export default function OrderHistory() {
         foundOrders.push({
           ...data,
           id: doc.id,
-          createdAt: (data.createdAt as any).toDate(),
+          createdAt: (data.createdAt as Timestamp).toDate(),
         } as Order);
       });
       setUserOrders(foundOrders);
@@ -104,8 +105,9 @@ export default function OrderHistory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
                       <TableHead>Package</TableHead>
+                      <TableHead>Player ID</TableHead>
+                      <TableHead>Price</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="text-right">Status</TableHead>
                     </TableRow>
@@ -113,8 +115,9 @@ export default function OrderHistory() {
                   <TableBody>
                     {userOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-mono text-xs truncate max-w-[100px] sm:max-w-xs">{order.id}</TableCell>
-                        <TableCell>{order.productName}</TableCell>
+                        <TableCell className="font-medium">{order.productName}</TableCell>
+                        <TableCell>{order.playerId}</TableCell>
+                        <TableCell>৳{order.productPrice.toFixed(2)}</TableCell>
                         <TableCell className="whitespace-nowrap">{order.createdAt.toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <OrderStatusBadge status={order.status} />
