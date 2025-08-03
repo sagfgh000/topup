@@ -70,7 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description = 'The process was cancelled.';
         break;
       default:
-        description = error.message; // Fallback for other errors
+        // For other errors, you might want a generic message or to log them
+        console.error(`Unhandled auth error in ${context}:`, error);
+        description = `An unexpected error occurred: ${error.code}`;
         break;
     }
 
