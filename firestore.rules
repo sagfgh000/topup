@@ -1,0 +1,73 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Wallets:
+    // - Users can only read their own wallet.
+    // - Users cannot write to their own wallet (only server/admin actions can).
+    // - Admins can read/write any wallet.
+    match /wallets/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+      // Note: Client-side balance updates are disallowed. They must happen
+      // through trusted server-side transactions (e.g., placing an order, approving a top-up).
+    }
+
+    // Orders:
+    // - Users can create their own orders.
+    // - Users can read their own orders.
+    // - Admins can read/write any order.
+    match /orders/{orderId} {
+      allow read: if isOwner(get(after).data.userId) || isAdmin();
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isAdmin();
+      allow delete: if false; // Nobody can delete orders
+    }
+
+    // Top-Up Requests:
+    // - Users can create their own top-up requests.
+    // - Users cannot read any top-up requests (not even their own).
+    // - Admins can read/write any top-up request.
+    match /topUpRequests/{requestId} {
+      allow read, update: if isAdmin();
+      allow create: if isOwner(request.resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // Products:
+    // - Anyone can read products (even non-logged-in users).
+    // - Only admins can create, update, or delete products.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Settings: (e.g., promo banner)
+    // - Anyone can read settings.
+    // - Only admins can write settings.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Users collection:
+    // This is a hypothetical collection for storing user roles.
+    // For this app, the admin role is checked by email in the code,
+    // but this demonstrates how you would secure roles if you stored them in Firestore.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin(); // Only admins can change roles
+    }
+  }
+}
