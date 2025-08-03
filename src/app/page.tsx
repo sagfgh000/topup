@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Gem, CreditCard, ShieldCheck, Loader2, Info } from 'lucide-react';
+import { Gem, CreditCard, ShieldCheck, Loader2, Info, Megaphone } from 'lucide-react';
 import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 import type { Product, Order, Wallet } from '@/lib/types';
@@ -51,6 +51,12 @@ const orderFormSchema = z.object({
   playerId: z.string().min(5, 'Player ID must be at least 5 characters.'),
 });
 
+type PromoBannerSettings = {
+  isEnabled: boolean;
+  text: string;
+  variant: "default" | "destructive" | "info";
+};
+
 export default function HomePage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = React.useState(true);
@@ -58,6 +64,7 @@ export default function HomePage() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
   const [isLoginPromptOpen, setIsLoginPromptOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [promoBanner, setPromoBanner] = React.useState<PromoBannerSettings | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
@@ -68,6 +75,21 @@ export default function HomePage() {
       playerId: '',
     },
   });
+
+  React.useEffect(() => {
+    const fetchPromoSettings = async () => {
+      try {
+        const settingsRef = doc(db, 'settings', 'promoBanner');
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+          setPromoBanner(docSnap.data() as PromoBannerSettings);
+        }
+      } catch (error) {
+        console.error('Failed to fetch promo settings', error);
+      }
+    };
+    fetchPromoSettings();
+  }, []);
   
   React.useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('price', 'asc'));
@@ -152,6 +174,9 @@ export default function HomePage() {
     }
   }
 
+  const promoAlertVariant = promoBanner?.variant === 'info' ? 'default' : promoBanner?.variant;
+  const promoAlertClass = promoBanner?.variant === 'info' ? 'bg-blue-500/10 border-blue-500/20 text-blue-300 [&>svg]:text-blue-400' : '';
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -171,6 +196,13 @@ export default function HomePage() {
         </section>
 
         <section className="container mx-auto px-4 py-8 md:py-12">
+            {promoBanner?.isEnabled && promoBanner.text && (
+                <Alert variant={promoAlertVariant} className={cn('mb-8 animate-in fade-in-50', promoAlertClass)}>
+                    <Megaphone className="h-5 w-5" />
+                    <AlertTitle className="font-bold">Announcement</AlertTitle>
+                    <AlertDescription>{promoBanner.text}</AlertDescription>
+                </Alert>
+            )}
           <div className="max-w-2xl mx-auto">
             <div className="space-y-8">
               <Card className="shadow-lg overflow-hidden">
