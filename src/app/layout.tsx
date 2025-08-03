@@ -1,12 +1,50 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Gem } from 'lucide-react';
 
+const siteUrl = 'https://dimondtopup.vercel.app';
+const siteTitle = 'Dimond Topup - Fast & Secure Free Fire Diamond Top-Up BD';
+const siteDescription = 'The fastest and most trusted platform in Bangladesh to top-up Garena Free Fire diamonds. Get instant FF diamond delivery using your UID. Secure payment and 24/7 support.';
+const ogImage = 'https://i.ibb.co/p60sY0qv/download-2.jpg';
+
 export const metadata: Metadata = {
-  title: 'Dimond Topup',
-  description: 'Top-up website for Free Fire diamonds',
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  keywords: [
+    'Free Fire diamond topup', 
+    'FF diamond top up', 
+    'Garena top up',
+    'Dimond Topup',
+    'Free Fire Bangladesh',
+    'FF diamond BD',
+    'UID topup',
+    'game topup bd',
+    'free fire in-game purchase'
+  ],
+  openGraph: {
+    type: 'website',
+    url: siteUrl,
+    title: siteTitle,
+    description: siteDescription,
+    images: [
+        {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: 'Free Fire Diamond Top-up Banner',
+        },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImage],
+  },
   icons: {
     icon: '/icon.svg',
   }
