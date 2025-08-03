@@ -127,8 +127,11 @@ export default function AdminTopUpsTable() {
                 const walletDoc = await transaction.get(walletRef);
                 
                 if (!walletDoc.exists()) {
-                    // If wallet doesn't exist, create it with the top-up amount
-                    transaction.set(walletRef, { balance: request.amount });
+                    // If wallet doesn't exist, create it with the top-up amount and default agreement status
+                    transaction.set(walletRef, { 
+                        balance: request.amount, 
+                        hasAcceptedAgreement: false 
+                    });
                 } else {
                     const currentBalance = walletDoc.data().balance;
                     const newBalance = currentBalance + request.amount;
