@@ -3,9 +3,8 @@
 
 import * as React from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
-import type { User } from 'firebase/auth'; // We won't have direct user objects, just emails and UIDs from other collections
-
+import { collection, onSnapshot, query, getDocs, doc, updateDoc } from 'firebase/firestore';
+import type { Wallet } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -24,26 +23,43 @@ import {
 import { Loader2, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { EditBalanceDialog } from './EditBalanceDialog';
+import { useToast } from '@/hooks/use-toast';
 
-// Simplified customer type for our purposes
+// Updated customer type to include wallet balance
 type Customer = {
   id: string; // This will be the UID
   email: string;
   totalSpent: number;
   orderCount: number;
+  balance: number;
 };
 
 export default function AdminCustomersTable() {
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [editingCustomer, setEditingCustomer] = React.useState<Customer | null>(null);
+  const { toast } = useToast();
 
   React.useEffect(() => {
-    setLoading(true);
-    // This is a more complex query. We first get all orders, then aggregate by user.
     const fetchCustomerData = async () => {
-      // Use a map to store aggregated data, ensuring each user is unique.
-      const customerDataMap = new Map<string, { email: string; totalSpent: number; orderCount: number }>();
+      setLoading(true);
+      const customerDataMap = new Map<string, { email: string; totalSpent: number; orderCount: number; balance: number }>();
+
+      // Get all wallets to initialize every user with a wallet
+      const walletsSnapshot = await getDocs(collection(db, 'wallets'));
+      walletsSnapshot.forEach((doc) => {
+          const wallet = doc.data() as Wallet;
+          // We need user email, which isn't stored on the wallet. We'll get it from orders/topups.
+          customerDataMap.set(doc.id, {
+              email: '', // will be populated later
+              totalSpent: 0,
+              orderCount: 0,
+              balance: wallet.balance || 0,
+          });
+      });
 
       // Get all orders
       const ordersQuery = query(collection(db, 'orders'));
@@ -54,14 +70,11 @@ export default function AdminCustomersTable() {
         const { userId, userEmail, productPrice, status } = order;
         
         if (!customerDataMap.has(userId)) {
-          customerDataMap.set(userId, {
-            email: userEmail,
-            totalSpent: 0,
-            orderCount: 0,
-          });
+          customerDataMap.set(userId, { email: userEmail, totalSpent: 0, orderCount: 0, balance: 0 });
         }
         
         const data = customerDataMap.get(userId)!;
+        if (userEmail) data.email = userEmail;
         if (status === 'Completed') {
             data.totalSpent += productPrice;
         }
@@ -75,17 +88,14 @@ export default function AdminCustomersTable() {
       topupsSnapshot.forEach((doc) => {
           const topup = doc.data();
           const { userId, userEmail } = topup;
-          // If the user from top-ups isn't already in our map from orders, add them.
           if (!customerDataMap.has(userId)) {
-              customerDataMap.set(userId, {
-                  email: userEmail,
-                  totalSpent: 0,
-                  orderCount: 0,
-              });
+              customerDataMap.set(userId, { email: userEmail, totalSpent: 0, orderCount: 0, balance: 0 });
+          } else {
+              const data = customerDataMap.get(userId)!;
+              if (userEmail) data.email = userEmail;
           }
       });
       
-      // Convert the map to an array for rendering
       const customerList: Customer[] = Array.from(customerDataMap.entries()).map(([uid, data]) => ({
         id: uid,
         ...data,
@@ -97,22 +107,37 @@ export default function AdminCustomersTable() {
 
     fetchCustomerData().catch(console.error);
     
-    // We can't use onSnapshot for this aggregation easily on the client-side.
-    // For real-time updates here, a Cloud Function would be better.
-    // So, we'll just fetch once on component mount.
-
   }, []);
+
+  const handleEditBalance = (customer: Customer) => {
+    setEditingCustomer(customer);
+  };
+
+  const handleSaveBalance = async (customerId: string, newBalance: number) => {
+    const walletRef = doc(db, 'wallets', customerId);
+    try {
+        await updateDoc(walletRef, { balance: newBalance });
+        toast({ title: 'Success', description: "User's balance updated successfully." });
+        // Update local state to reflect the change immediately
+        setCustomers(customers.map(c => c.id === customerId ? { ...c, balance: newBalance } : c));
+        setEditingCustomer(null); // Close dialog
+    } catch (error) {
+        console.error('Failed to update balance:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update user balance.' });
+    }
+  };
 
   const filteredCustomers = customers.filter(customer => 
     customer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Customers</CardTitle>
         <CardDescription>
-          A list of all users who have placed orders or made topups.
+          View and manage all registered users and their wallet balances.
         </CardDescription>
         <div className="relative mt-2">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -143,8 +168,10 @@ export default function AdminCustomersTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
-                <TableHead>Orders Placed</TableHead>
-                <TableHead className="text-right">Total Spent (Completed)</TableHead>
+                <TableHead>Orders</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Wallet Balance</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,7 +179,13 @@ export default function AdminCustomersTable() {
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.email}</TableCell>
                   <TableCell>{customer.orderCount}</TableCell>
-                  <TableCell className="text-right">৳{customer.totalSpent.toFixed(2)}</TableCell>
+                  <TableCell>৳{customer.totalSpent.toFixed(2)}</TableCell>
+                  <TableCell className="font-semibold">৳{customer.balance.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => handleEditBalance(customer)}>
+                        Edit Balance
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -161,5 +194,12 @@ export default function AdminCustomersTable() {
         )}
       </CardContent>
     </Card>
+    <EditBalanceDialog 
+        isOpen={!!editingCustomer}
+        onOpenChange={(isOpen) => !isOpen && setEditingCustomer(null)}
+        customer={editingCustomer}
+        onSave={handleSaveBalance}
+    />
+    </>
   );
 }
