@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Zap, LogOut, User as UserIcon, LayoutDashboard, Phone } from 'lucide-react';
+import { Gem, LogOut, User as UserIcon, LayoutDashboard, Phone } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,7 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <Zap className="h-6 w-6 text-primary" />
+            <Gem className="h-6 w-6 text-primary" />
             <span className="font-bold text-lg font-headline">Dimond Topup</span>
           </Link>
           <nav>
