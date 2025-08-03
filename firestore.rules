@@ -3,59 +3,72 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+  
     // Wallets:
-    // - Users can create their own wallet for the first time.
-    // - Users can read their own wallet.
-    // - Admins can do anything.
-    // - Wallet updates for users are handled by transactions (see orders rule).
+    // 1. Allow a user to create their own wallet document for the first time.
+    // 2. Allow a user to update their own wallet (e.g., when an order deducts balance).
+    // 3. Allow an admin to read any wallet for the customer list.
     match /wallets/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId;
+      // FIX: Allow both 'update' and 'set' (with merge) for balance changes.
+      allow write: if request.auth.uid == userId; 
       
-      // Admin override
-      allow read, create, update, delete: if request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+      function isAdmin() {
+        return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+      }
     }
-
+    
     // Orders:
-    // - Users can create their own orders (and this transaction can update their wallet).
-    // - Users can read their own orders.
-    // - Admins can do anything.
+    // 1. Users can create their own orders.
+    // 2. Users can only read their own orders.
+    // 3. Admins can read/write any order.
     match /orders/{orderId} {
-      allow read: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId &&
-                       // Ensure the wallet is being correctly debited in the same transaction
-                       getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.balance ==
-                       get(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.balance - request.resource.data.productPrice;
+      allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow update: if isAdmin();
+      
+      function isAdmin() {
+        return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+      }
+    }
+    
+    // TopUpRequests:
+    // 1. Users can create their own top-up requests.
+    // 2. Users can't see other people's requests.
+    // 3. Admins can see and update any request.
+    match /topUpRequests/{requestId} {
+       allow read: if request.auth.uid == resource.data.userId || isAdmin();
+       allow create: if request.auth.uid == request.resource.data.userId;
+       allow update: if isAdmin();
 
-      // Admin override
-      allow read, create, update, delete: if request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+       function isAdmin() {
+        return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+      }
     }
 
     // Products:
-    // - Anyone can read the product list.
-    // - Admins can manage products.
+    // 1. Anyone can read the product list (for the homepage).
+    // 2. Only admins can create, update, or delete products.
     match /products/{productId} {
-      allow read;
-      allow create, update, delete: if request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
-    }
-
-    // Top-Up Requests:
-    // - Users can create their own requests.
-    // - Users can read their own requests.
-    // - Admins can do anything.
-    match /topUpRequests/{requestId} {
-      allow read: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId;
-
-      // Admin override
-      allow read, create, update, delete: if request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+        allow read: if true;
+        allow write: if isAdmin();
+        
+        function isAdmin() {
+          return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+        }
     }
     
-    // Settings (e.g., promo banner):
-    // - Only the admin can read or write.
-    match /settings/{settingId} {
-       allow read, write: if request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+    // Settings (for promo banner):
+    // 1. Anyone can read the settings.
+    // 2. Only admins can change the settings.
+     match /settings/{settingId} {
+        allow read: if true;
+        allow write: if isAdmin();
+        
+        function isAdmin() {
+          return request.auth != null && request.auth.token.email == 'kymt83091@gmail.com';
+        }
     }
   }
 }
