@@ -81,15 +81,12 @@ export default function AdminOrdersTable() {
                 const walletRef = doc(db, 'wallets', order.userId);
                 const walletDoc = await transaction.get(walletRef);
 
-                // Only refund if a wallet exists. It's possible for an order to exist without a wallet
-                // if the user's account was somehow deleted.
                 if (walletDoc.exists()) {
                     const currentBalance = walletDoc.data().balance;
                     const newBalance = currentBalance + order.productPrice;
                     transaction.update(walletRef, { balance: newBalance });
                 }
                 
-                // Mark the order as failed regardless of whether a refund was possible.
                 transaction.update(orderRef, { status: newStatus });
             });
              toast({
@@ -97,21 +94,24 @@ export default function AdminOrdersTable() {
                 description: `Order marked as Failed. ৳${order.productPrice.toFixed(2)} refunded to ${order.userEmail}.`
             });
         } else if (newStatus === 'Completed' && order.status === 'Failed') {
-            // This is an edge case: if an admin accidentally marks an order as Failed, they might want to reverse it.
-            // This logic will re-deduct the funds from the user's wallet.
+            // This is an edge case: reversing a refund.
             await runTransaction(db, async (transaction) => {
                 const walletRef = doc(db, 'wallets', order.userId);
                 const walletDoc = await transaction.get(walletRef);
-                if (walletDoc.exists()) {
-                    const currentBalance = walletDoc.data().balance;
-                    // Ensure the user has enough balance to cover the "un-refund"
-                    if (currentBalance >= order.productPrice) {
-                       const newBalance = currentBalance - order.productPrice;
-                       transaction.update(walletRef, { balance: newBalance });
-                    } else {
-                       throw new Error("User has insufficient balance to reverse the refund.");
-                    }
+
+                if (!walletDoc.exists()) {
+                    throw new Error("Cannot complete order because the user's wallet does not exist.");
                 }
+                
+                const currentBalance = walletDoc.data().balance;
+                
+                // Ensure the user has enough balance to cover the "un-refund"
+                if (currentBalance < order.productPrice) {
+                    throw new Error(`User has insufficient balance (৳${currentBalance.toFixed(2)}) to reverse the refund.`);
+                }
+                
+                const newBalance = currentBalance - order.productPrice;
+                transaction.update(walletRef, { balance: newBalance });
                 transaction.update(orderRef, { status: newStatus });
             });
             toast({
@@ -120,7 +120,6 @@ export default function AdminOrdersTable() {
             });
         }
         else {
-             // For any other status change (e.g., Pending -> Completed), just update the order.
              await updateDoc(orderRef, { status: newStatus });
              toast({
                 title: "Order Updated",
