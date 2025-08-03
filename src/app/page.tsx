@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Gem, CreditCard, ShieldCheck, Loader2, Info, Megaphone } from 'lucide-react';
 import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { type Metadata } from 'next';
 
 import type { Product, Order, Wallet } from '@/lib/types';
 import { cn } from '@/lib/utils';

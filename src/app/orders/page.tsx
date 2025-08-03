@@ -1,7 +1,14 @@
+
 import Header from "@/components/Header";
 import OrderHistory from "@/components/OrderHistory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: 'Track Your Order - Dimond Topup',
+  description: 'Check the status of your Free Fire diamond top-up order. Enter your Player ID (UID) to view your complete order history and current status.',
+};
 
 export default function OrderTrackingPage() {
   return (
