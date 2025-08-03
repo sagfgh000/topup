@@ -44,11 +44,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
+  const handleAuthError = (error: any, context: 'Login' | 'Signup' | 'Google Login') => {
+    let description = 'An unexpected error occurred. Please try again.';
+    
+    switch (error.code) {
+      case 'auth/invalid-credential':
+        description = 'Invalid credentials. Please check your email and password.';
+        break;
+      case 'auth/user-not-found':
+        description = 'No account found with this email. Please sign up first.';
+        break;
+      case 'auth/wrong-password':
+        description = 'Incorrect password. Please try again.';
+        break;
+      case 'auth/email-already-in-use':
+        description = 'This email is already registered. Please login instead.';
+        break;
+      case 'auth/weak-password':
+        description = 'The password is too weak. Please use at least 6 characters.';
+        break;
+       case 'auth/popup-closed-by-user':
+        description = 'Login process was cancelled.';
+        break;
+      default:
+        description = error.message; // Fallback for other errors
+        break;
+    }
+
+    toast({
+      variant: 'destructive',
+      title: `${context} Failed`,
+      description: description,
+    });
+  }
+
   const login = async (email: string, pass: string) => {
     try {
       return await signInWithEmailAndPassword(auth, email, pass);
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
+      handleAuthError(error, 'Login');
       throw error;
     }
   };
@@ -58,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       return await signInWithPopup(auth, provider);
     } catch (error: any) {
-       toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
+       handleAuthError(error, 'Google Login');
        throw error;
     }
   }
@@ -68,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return await createUserWithEmailAndPassword(auth, email, pass);
     } catch (error: any)
 {
-      toast({ variant: 'destructive', title: 'Signup Failed', description: error.message });
+      handleAuthError(error, 'Signup');
       throw error;
     }
   };
