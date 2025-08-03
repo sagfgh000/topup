@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -20,8 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Input } from './ui/input';
 
 // Simplified customer type for our purposes
 type Customer = {
@@ -34,6 +36,7 @@ type Customer = {
 export default function AdminCustomersTable() {
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   React.useEffect(() => {
     setLoading(true);
@@ -46,7 +49,7 @@ export default function AdminCustomersTable() {
 
       querySnapshot.forEach((doc) => {
         const order = doc.data();
-        const { userId, userEmail, productPrice } = order;
+        const { userId, userEmail, productPrice, status } = order;
 
         if (!customerData[userId]) {
           customerData[userId] = {
@@ -55,7 +58,9 @@ export default function AdminCustomersTable() {
             orderCount: 0,
           };
         }
-        customerData[userId].totalSpent += productPrice;
+        if (status === 'Completed') {
+            customerData[userId].totalSpent += productPrice;
+        }
         customerData[userId].orderCount += 1;
       });
 
@@ -93,6 +98,10 @@ export default function AdminCustomersTable() {
 
   }, []);
 
+  const filteredCustomers = customers.filter(customer => 
+    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -100,30 +109,41 @@ export default function AdminCustomersTable() {
         <CardDescription>
           A list of all users who have placed orders or made topups.
         </CardDescription>
+        <div className="relative mt-2">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+                type="search"
+                placeholder="Search by email..."
+                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
            <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-        ) : customers.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <Alert>
             <AlertTitle>No Customers Found</AlertTitle>
             <AlertDescription>
-              No users have placed an order or made a top-up yet.
+              Your search for "{searchTerm}" did not match any customers.
             </AlertDescription>
           </Alert>
         ) : (
+          <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Orders Placed</TableHead>
-                <TableHead className="text-right">Total Spent</TableHead>
+                <TableHead className="text-right">Total Spent (Completed)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((customer) => (
+              {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.email}</TableCell>
                   <TableCell>{customer.orderCount}</TableCell>
@@ -132,6 +152,7 @@ export default function AdminCustomersTable() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>
