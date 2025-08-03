@@ -76,37 +76,63 @@ export default function AdminOrdersTable() {
     const orderRef = doc(db, 'orders', order.id);
     try {
         if (newStatus === 'Failed' && order.status !== 'Failed') {
-            // Refund the user if the order is marked as failed
+            // Refund the user if the order is marked as failed by adding the amount back to their wallet.
             await runTransaction(db, async (transaction) => {
                 const walletRef = doc(db, 'wallets', order.userId);
                 const walletDoc = await transaction.get(walletRef);
 
+                // Only refund if a wallet exists. It's possible for an order to exist without a wallet
+                // if the user's account was somehow deleted.
                 if (walletDoc.exists()) {
                     const currentBalance = walletDoc.data().balance;
                     const newBalance = currentBalance + order.productPrice;
                     transaction.update(walletRef, { balance: newBalance });
                 }
-                // If wallet doesn't exist, we can't refund, but we still mark as failed.
                 
+                // Mark the order as failed regardless of whether a refund was possible.
                 transaction.update(orderRef, { status: newStatus });
             });
              toast({
                 title: "Order Updated & Refunded",
                 description: `Order marked as Failed. ৳${order.productPrice.toFixed(2)} refunded to ${order.userEmail}.`
             });
-        } else {
+        } else if (newStatus === 'Completed' && order.status === 'Failed') {
+            // This is an edge case: if an admin accidentally marks an order as Failed, they might want to reverse it.
+            // This logic will re-deduct the funds from the user's wallet.
+            await runTransaction(db, async (transaction) => {
+                const walletRef = doc(db, 'wallets', order.userId);
+                const walletDoc = await transaction.get(walletRef);
+                if (walletDoc.exists()) {
+                    const currentBalance = walletDoc.data().balance;
+                    // Ensure the user has enough balance to cover the "un-refund"
+                    if (currentBalance >= order.productPrice) {
+                       const newBalance = currentBalance - order.productPrice;
+                       transaction.update(walletRef, { balance: newBalance });
+                    } else {
+                       throw new Error("User has insufficient balance to reverse the refund.");
+                    }
+                }
+                transaction.update(orderRef, { status: newStatus });
+            });
+            toast({
+                title: "Order Update Reversed",
+                description: `Order marked as Completed. ৳${order.productPrice.toFixed(2)} re-deducted.`
+            });
+        }
+        else {
+             // For any other status change (e.g., Pending -> Completed), just update the order.
              await updateDoc(orderRef, { status: newStatus });
              toast({
                 title: "Order Updated",
                 description: `Order has been marked as ${newStatus}.`
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating order status: ", error);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to update order status.",
+            description: error.message || "Failed to update order status.",
         });
     }
   };
@@ -172,7 +198,7 @@ export default function AdminOrdersTable() {
                                 Mark as Pending
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleStatusChange(order, 'Failed')}>
-                                Mark as Failed
+                                Mark as Failed (Refunds User)
                             </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -212,5 +238,3 @@ export default function AdminOrdersTable() {
     </Tabs>
   );
 }
-
-    

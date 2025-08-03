@@ -42,49 +42,54 @@ export default function AdminCustomersTable() {
     setLoading(true);
     // This is a more complex query. We first get all orders, then aggregate by user.
     const fetchCustomerData = async () => {
+      // Use a map to store aggregated data, ensuring each user is unique.
+      const customerDataMap = new Map<string, { email: string; totalSpent: number; orderCount: number }>();
+
+      // Get all orders
       const ordersQuery = query(collection(db, 'orders'));
-      const querySnapshot = await getDocs(ordersQuery);
+      const ordersSnapshot = await getDocs(ordersQuery);
 
-      const customerData: { [uid: string]: { email: string; totalSpent: number; orderCount: number } } = {};
-
-      querySnapshot.forEach((doc) => {
+      ordersSnapshot.forEach((doc) => {
         const order = doc.data();
         const { userId, userEmail, productPrice, status } = order;
-
-        if (!customerData[userId]) {
-          customerData[userId] = {
+        
+        if (!customerDataMap.has(userId)) {
+          customerDataMap.set(userId, {
             email: userEmail,
             totalSpent: 0,
             orderCount: 0,
-          };
+          });
         }
+        
+        const data = customerDataMap.get(userId)!;
         if (status === 'Completed') {
-            customerData[userId].totalSpent += productPrice;
+            data.totalSpent += productPrice;
         }
-        customerData[userId].orderCount += 1;
+        data.orderCount += 1;
       });
 
-      const customerList: Customer[] = Object.entries(customerData).map(([uid, data]) => ({
-        id: uid,
-        ...data,
-      }));
-      
-      // Also get users who may have signed up but not ordered
+      // Get all top-ups to find users who may not have ordered yet
       const topupsQuery = query(collection(db, 'topUpRequests'));
       const topupsSnapshot = await getDocs(topupsQuery);
+
       topupsSnapshot.forEach((doc) => {
           const topup = doc.data();
           const { userId, userEmail } = topup;
-          if (!customerData[userId]) {
-              customerList.push({
-                  id: userId,
+          // If the user from top-ups isn't already in our map from orders, add them.
+          if (!customerDataMap.has(userId)) {
+              customerDataMap.set(userId, {
                   email: userEmail,
                   totalSpent: 0,
                   orderCount: 0,
               });
           }
       });
-
+      
+      // Convert the map to an array for rendering
+      const customerList: Customer[] = Array.from(customerDataMap.entries()).map(([uid, data]) => ({
+        id: uid,
+        ...data,
+      }));
 
       setCustomers(customerList);
       setLoading(false);

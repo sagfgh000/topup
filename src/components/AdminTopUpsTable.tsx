@@ -109,25 +109,20 @@ export default function AdminTopUpsTable() {
     setProcessingId(request.id);
 
     const requestRef = doc(db, 'topUpRequests', request.id);
+    const walletRef = doc(db, 'wallets', request.userId);
 
     try {
         await runTransaction(db, async (transaction) => {
             const requestDoc = await transaction.get(requestRef);
-            if (!requestDoc.exists()) {
-                throw new Error("Request does not exist anymore.");
-            }
-            
-            const currentRequest = requestDoc.data() as TopUpRequest;
-            if (currentRequest.status !== 'Pending') {
-                throw new Error(`This request has already been ${currentRequest.status.toLowerCase()}.`);
+            if (!requestDoc.exists() || requestDoc.data().status !== 'Pending') {
+                throw new Error("This request is no longer pending.");
             }
 
             if (newStatus === 'Approved') {
-                const walletRef = doc(db, 'wallets', request.userId);
                 const walletDoc = await transaction.get(walletRef);
                 
                 if (!walletDoc.exists()) {
-                    // If wallet doesn't exist, create it with the top-up amount and default agreement status
+                    // Create a new wallet with the approved amount and default agreement status
                     transaction.set(walletRef, { 
                         balance: request.amount, 
                         hasAcceptedAgreement: false 
@@ -138,6 +133,7 @@ export default function AdminTopUpsTable() {
                     transaction.update(walletRef, { balance: newBalance });
                 }
             }
+            
             // For both 'Approved' and 'Rejected', update the request status
             transaction.update(requestRef, { status: newStatus });
         });
@@ -151,8 +147,8 @@ export default function AdminTopUpsTable() {
         console.error('Error processing request: ', error);
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error.message || 'Failed to process the request.',
+            title: 'Error processing request',
+            description: error.message || 'The request could not be processed.',
         });
     } finally {
         setProcessingId(null);
