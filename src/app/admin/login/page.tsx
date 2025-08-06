@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Gem } from 'lucide-react';
@@ -28,7 +29,7 @@ export default function AdminLoginPage() {
   const form = useForm<z.infer<typeof adminLoginFormSchema>>({
     resolver: zodResolver(adminLoginFormSchema),
     defaultValues: {
-      email: "kymt83091@gmail.com",
+      email: "",
       password: "",
     },
   });
