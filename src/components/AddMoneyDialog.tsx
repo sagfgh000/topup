@@ -86,16 +86,18 @@ export function AddMoneyDialog({
     }
     setIsSubmitting(true);
     try {
-        const topUpRequest: TopUpRequest = {
+        const topUpRequest: Omit<TopUpRequest, 'id' | 'createdAt'> = {
             userId: user.uid,
             userEmail: user.email || 'N/A',
             amount: values.amount,
             paymentMethod: values.paymentMethod,
             transactionId: values.transactionId,
             status: 'Pending',
-            createdAt: new Date(),
         };
-        await addDoc(collection(db, 'topUpRequests'), topUpRequest);
+        await addDoc(collection(db, 'topUpRequests'), {
+            ...topUpRequest,
+            createdAt: serverTimestamp(),
+        });
         
         toast({
             title: 'Request Submitted',
