@@ -185,7 +185,7 @@ export default function HomePage() {
       <main className="flex-grow">
         <section 
             className="relative h-64 md:h-80 w-full bg-cover bg-center bg-no-repeat"
-            style={{backgroundImage: 'url(https://i.ibb.co/p60sY0qv/download-2.jpg)'}}
+            style={{backgroundImage: 'url(https://i.ibb.co/2Y5jRysV/freefire-rmr-topup-1920x1080.png)'}}
         >
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
