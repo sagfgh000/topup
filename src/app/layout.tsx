@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { Gem } from 'lucide-react';
 
 const siteUrl = 'https://rmrtopup.vercel.app';
-const siteTitle = 'Rmr Topup - Fast & Secure Free Fire Diamond Top-Up BD';
+const siteTitle = 'Diamond Depot - Fast & Secure Free Fire Diamond Top-Up BD';
 const siteDescription = 'The fastest and most trusted platform in Bangladesh to top-up Garena Free Fire diamonds. Get instant FF diamond delivery using your UID. Secure payment and 24/7 support.';
 const ogImage = 'https://i.ibb.co/p60sY0qv/download-2.jpg';
 
@@ -14,14 +14,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: siteTitle,
-    template: `%s | Rmr Topup`,
+    template: `%s | Diamond Depot`,
   },
   description: siteDescription,
   keywords: [
     'Free Fire diamond topup', 
     'FF diamond top up', 
     'Garena top up',
-    'Rmr Topup',
+    'Diamond Depot',
     'Free Fire Bangladesh',
     'FF diamond BD',
     'UID topup',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: {
       default: siteTitle,
-      template: `%s | Rmr Topup`,
+      template: `%s | Diamond Depot`,
     },
     description: siteDescription,
     images: [
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: {
       default: siteTitle,
-      template: `%s | Rmr Topup`,
+      template: `%s | Diamond Depot`,
     },
     description: siteDescription,
     images: [ogImage],

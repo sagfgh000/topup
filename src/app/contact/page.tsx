@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'How It Works & Contact Us - Rmr Topup',
+  title: 'How It Works & Contact Us - Diamond Depot',
   description: 'Learn the simple steps to top-up your Free Fire diamonds and how to contact us for support. We are available to help you with any issues.',
 };
 

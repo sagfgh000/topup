@@ -31,7 +31,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
             <Gem className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg font-headline">Rmr Topup</span>
+            <span className="font-bold text-lg font-headline">Diamond Depot</span>
           </Link>
           <nav>
             <ul className="flex items-center gap-4">

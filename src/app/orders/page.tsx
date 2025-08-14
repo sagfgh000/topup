@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Track Your Order - Rmr Topup',
+  title: 'Track Your Order - Diamond Depot',
   description: 'Check the status of your Free Fire diamond top-up order. Enter your Player ID (UID) to view your complete order history and current status.',
 };
 

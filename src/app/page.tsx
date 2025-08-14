@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Gem, CreditCard, ShieldCheck, Loader2, Info, Megaphone } from 'lucide-react';
 import { collection, addDoc, doc, getDoc, runTransaction, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { type Metadata } from 'next';
+
 
 import type { Product, Order, Wallet } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -190,7 +190,7 @@ export default function HomePage() {
         >
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-lg">
-              Rmr Topup
+              Diamond Depot
             </h1>
             <p className="mt-2 text-lg md:text-xl max-w-2xl drop-shadow-md">
               Instant Top-Ups for Free Fire. Get your diamonds quickly and securely.
@@ -254,9 +254,9 @@ export default function HomePage() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <Alert variant="destructive" className="bg-blue-500/10 border-blue-500/20 text-blue-300">
                         <Info className="h-5 w-5 text-blue-400" />
-                        <AlertTitle className="font-bold text-blue-400">অর্ডার করার আগে পড়ুন</AlertTitle>
+                        <AlertTitle className="font-bold text-blue-400">অনুরোধ: আপনার Free Fire Player ID (UID) সাবধানে দিন। ভুল UID দিলে এবং ডায়মন্ড অন্য একাউন্টে গেলে, কর্তৃপক্ষ দায়ী থাকবে না।</AlertTitle>
                         <AlertDescription>
-                          আপনার Free Fire Player ID (UID) সাবধানে দিন। ভুল UID দিলে এবং ডায়মন্ড অন্য একাউন্টে গেলে, কর্তৃপক্ষ দায়ী থাকবে না।
+                          If you enter a wrong Player ID (UID) and the diamond top-up is sent to the wrong account, the administration will not be responsible and no refund will be issued. Please double-check your UID carefully before ordering.
                         </AlertDescription>
                       </Alert>
                       <FormField
