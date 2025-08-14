@@ -174,7 +174,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </SheetContent>
           </Sheet>
           <div className="font-headline text-xl">
-            {navItems.find(item => pathname.startsWith(item.href))?.label || 'Admin'}
+            {navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Admin'}
           </div>
         </header>
         <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
